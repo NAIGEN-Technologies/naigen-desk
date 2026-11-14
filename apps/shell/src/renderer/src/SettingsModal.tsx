@@ -2533,7 +2533,8 @@ export function SettingsModal({
                     )}
                   </div>
                 )}
-                <div className="set-field">
+                {/* Modified for Naigen Desk: channel selector hidden, updates are stable-only */}
+                <div className="set-field" style={{ display: 'none' }}>
                   <div className="set-field-text">
                     <label className="set-field-label">{t('updateChannel')}</label>
                   </div>

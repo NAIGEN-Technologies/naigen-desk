@@ -43,6 +43,7 @@ const updaterState = {
   disableDifferentialDownload: false,
   channel: null as string | null,
   allowDowngrade: false,
+  allowPrerelease: false,
 }
 const checkForUpdates = vi.fn(() => Promise.resolve(null))
 const downloadUpdate = vi.fn<(token?: FakeCancellationToken) => Promise<unknown>>(() =>
@@ -82,6 +83,12 @@ vi.mock('electron-updater', () => ({
     },
     get channel() {
       return updaterState.channel
+    },
+    set allowPrerelease(v: boolean) {
+      updaterState.allowPrerelease = v
+    },
+    get allowPrerelease() {
+      return updaterState.allowPrerelease
     },
     set allowDowngrade(v: boolean) {
       updaterState.allowDowngrade = v
@@ -154,6 +161,8 @@ beforeEach(() => {
   updaterState.disableDifferentialDownload = false
   updaterState.channel = null
   updaterState.allowDowngrade = false
+  updaterState.allowPrerelease = false
+  delete process.env.NAIGEN_DESK_ALLOW_PRERELEASE
   checkForUpdates.mockClear()
   downloadUpdate.mockReset()
   downloadUpdate.mockImplementation(() => Promise.resolve([]))
@@ -176,6 +185,47 @@ afterEach(() => {
   platformSpy?.restore()
   platformSpy = null
   delete process.env.GENOFFICE_FAKE_UPDATE
+  delete process.env.NAIGEN_DESK_ALLOW_PRERELEASE
+})
+
+// Modified for Naigen Desk: tests for the stable-only GitHub feed channel
+describe('feed channel (Naigen Desk)', () => {
+  it('with NAIGEN_DESK_ALLOW_PRERELEASE=1 allows prereleases and leaves channel null', async () => {
+    process.env.NAIGEN_DESK_ALLOW_PRERELEASE = '1'
+    const { initAutoUpdater } = await loadUpdater()
+    initAutoUpdater(() => null)
+    expect(updaterState.allowPrerelease).toBe(true)
+    expect(updaterState.channel).toBeNull()
+    expect(updaterState.allowDowngrade).toBe(false)
+  })
+
+  it('without the env var keeps channel latest and no prereleases', async () => {
+    const { initAutoUpdater } = await loadUpdater()
+    initAutoUpdater(() => null)
+    expect(updaterState.allowPrerelease).toBe(false)
+    expect(updaterState.channel).toBe('latest')
+    expect(updaterState.allowDowngrade).toBe(false)
+  })
+
+  it('a stored beta preference still yields stable behaviour', async () => {
+    const { initAutoUpdater, applyUpdateChannel } = await loadUpdater()
+    initAutoUpdater(() => null, 'beta')
+    expect(updaterState.channel).toBe('latest')
+    applyUpdateChannel('beta')
+    expect(updaterState.channel).toBe('latest')
+    expect(updaterState.allowPrerelease).toBe(false)
+    expect(updaterState.allowDowngrade).toBe(false)
+  })
+
+  it('applyUpdateChannel with the env var keeps channel null', async () => {
+    process.env.NAIGEN_DESK_ALLOW_PRERELEASE = '1'
+    const { initAutoUpdater, applyUpdateChannel } = await loadUpdater()
+    initAutoUpdater(() => null)
+    applyUpdateChannel('beta')
+    expect(updaterState.allowPrerelease).toBe(true)
+    expect(updaterState.channel).toBeNull()
+    expect(updaterState.allowDowngrade).toBe(false)
+  })
 })
 
 describe('initAutoUpdater', () => {

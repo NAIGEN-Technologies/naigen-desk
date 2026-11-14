@@ -543,15 +543,29 @@ function initialState(version: string): UpdateUiState {
   }
 }
 
+// Modified for Naigen Desk: releases live on GitHub, so the channel is always
+// stable (a stored beta choice is ignored); NAIGEN_DESK_ALLOW_PRERELEASE=1
+// opts a test machine into pre-releases by enabling allowPrerelease and
+// leaving autoUpdater.channel unassigned (null), because GitHubProvider picks
+// no tag when channel is 'latest' together with allowPrerelease.
+function applyFeedChannel(): void {
+  if (process.env.NAIGEN_DESK_ALLOW_PRERELEASE === '1') {
+    autoUpdater.allowPrerelease = true
+  } else {
+    autoUpdater.allowPrerelease = false
+    autoUpdater.channel = CHANNEL_FEED.stable
+  }
+  // the channel setter unconditionally flips allowDowngrade to true; force it
+  // back off in both branches
+  autoUpdater.allowDowngrade = false
+}
+
 export function applyUpdateChannel(channel: UpdateChannel): void {
   if (!updaterActive) return
   resetDownloadFlow?.()
   // the user asked for this channel: it gets the card, not a quiet download
   quietCheck = false
-  autoUpdater.channel = CHANNEL_FEED[channel]
-  // the channel setter unconditionally flips allowDowngrade to true; force it
-  // back off since a beta user switching to stable must not downgrade
-  autoUpdater.allowDowngrade = false
+  applyFeedChannel()
   log('channel switched:', channel)
   autoUpdater.checkForUpdates().catch((err) => log('check failed:', err?.message ?? err))
 }
@@ -649,10 +663,7 @@ export function initAutoUpdater(
   if (process.platform !== 'win32' && process.platform !== 'darwin' && !isLinuxAppImage) return
 
   updaterActive = true
-  autoUpdater.channel = CHANNEL_FEED[initialChannel]
-  // the channel setter unconditionally flips allowDowngrade to true; force it
-  // back off since a beta user switching to stable must not downgrade
-  autoUpdater.allowDowngrade = false
+  applyFeedChannel()
   autoUpdater.autoDownload = false
   // if the user picked "later" after download, install on normal quit
   autoUpdater.autoInstallOnAppQuit = true
