@@ -14,7 +14,9 @@ test.describe('first-run onboarding', () => {
       await page.screenshot({ path: screenshotPath('onboarding-slide-1') })
 
       await page.locator('.onb-next').click()
-      await expect(page.locator('.onb-slide.active .onb-offer')).toBeVisible()
+      // Modified for Naigen Desk: the credits and community offer block is hidden with Genspark, so the slide shows only its title
+      await expect(page.locator('.onb-slide.active .onb-title')).toBeVisible()
+      await expect(page.locator('.onb-offer')).toHaveCount(0)
       await page.screenshot({ path: screenshotPath('onboarding-slide-2') })
 
       await page.locator('.onb-next').click()
