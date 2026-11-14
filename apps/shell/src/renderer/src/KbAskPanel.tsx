@@ -30,7 +30,7 @@ import {
   type AiTokenUsageView,
 } from '@genoffice/ui'
 import type { AiSettings } from '@genoffice/ai-provider'
-import { activeProvider } from '@genoffice/ai-provider/browser'
+import { GENSPARK_ENABLED, activeProvider } from '@genoffice/ai-provider/browser'
 import type { ChatMessage, ChatMeta, ProjectApi } from '@genoffice/project-store'
 import { useI18n } from './locale'
 import type { AttachmentAddResult } from '../../shared/home-api'
@@ -933,7 +933,8 @@ export function KbAskPanel({
           {t('askNoSave')}
         </p>
       )}
-      {gskEmail === null && provider === 'genspark' && (
+      {/* Modified for Naigen Desk: the Genspark sign-in prompt is hidden when Genspark is compiled out */}
+      {GENSPARK_ENABLED && gskEmail === null && provider === 'genspark' && (
         <p className="kb-ask-login">{t('askNeedsLogin')}</p>
       )}
       {attachNotice && (

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { GENSPARK_ENABLED } from '@genoffice/ai-provider/browser'
 import { Home } from './Home'
 import { Onboarding } from './Onboarding'
 import { StarPromptCard } from './StarPromptCard'
@@ -59,7 +60,8 @@ export function AppFrame({ initialOnboardingSeen }: AppFrameProps) {
       {/* editor WebContentsViews paint above ALL shell DOM, so the overlay only
        * renders while the home tab is active — it comes back when home does */}
       {showOnboarding && homeActive && <Onboarding onDone={finishOnboarding} />}
-      {starPromptDocOpens !== null && !showOnboarding && homeActive && (
+      {/* Modified for Naigen Desk: the GitHub star invitation points at the upstream repo, so it is hidden with Genspark */}
+      {GENSPARK_ENABLED && starPromptDocOpens !== null && !showOnboarding && homeActive && (
         <StarPromptCard docOpens={starPromptDocOpens} onClose={() => setStarPromptDocOpens(null)} />
       )}
     </div>

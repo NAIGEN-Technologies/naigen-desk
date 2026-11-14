@@ -9,7 +9,11 @@ import {
   clampAiCustomFontSize,
 } from '@genoffice/ui'
 import type { AiFontSize, AiPanelPrefs, AiPanelSide } from '@genoffice/ui'
-import { getProviderAdapter, thinkingShapeFor } from '@genoffice/ai-provider/browser'
+import {
+  GENSPARK_ENABLED,
+  getProviderAdapter,
+  thinkingShapeFor,
+} from '@genoffice/ai-provider/browser'
 import type {
   DecisionEndpoint,
   DefaultAppStatus,
@@ -676,16 +680,19 @@ function AiModelPane({ t }: { t: TFunc }) {
           className="set-dd"
           value={provider}
           ariaLabel={t('setAiProvider')}
-          options={catalog.map((c) => ({
-            value: c.id,
-            label: c.label,
-            render: (
-              <>
-                <ProviderLogo id={c.id} />
-                {c.label}
-              </>
-            ),
-          }))}
+          // Modified for Naigen Desk: the Genspark entry is hidden from the provider list when compiled out
+          options={catalog
+            .filter((c) => GENSPARK_ENABLED || c.id !== 'genspark')
+            .map((c) => ({
+              value: c.id,
+              label: c.label,
+              render: (
+                <>
+                  <ProviderLogo id={c.id} />
+                  {c.label}
+                </>
+              ),
+            }))}
           onPick={(v) => selectProvider(v as AiSettings['provider'])}
         />
       </div>
@@ -1094,26 +1101,29 @@ function AiModelPane({ t }: { t: TFunc }) {
           onBlur={commitMaxTokens}
         />
       </div>
-      <div className="set-field">
-        <div className="set-field-text">
-          <div className="set-field-stack">
-            <div className="set-field-label">{t('setAiGskTools')}</div>
-            <div className="set-field-desc">{t('setAiGskToolsDesc')}</div>
+      {/* Modified for Naigen Desk: the cloud tools switch depends on a Genspark sign-in, so it is hidden when compiled out */}
+      {GENSPARK_ENABLED && (
+        <div className="set-field">
+          <div className="set-field-text">
+            <div className="set-field-stack">
+              <div className="set-field-label">{t('setAiGskTools')}</div>
+              <div className="set-field-desc">{t('setAiGskToolsDesc')}</div>
+            </div>
           </div>
+          {/* locked on with the genspark provider — chat runs through gsk anyway */}
+          <button
+            className="set-switch"
+            role="switch"
+            aria-checked={settings.gskToolsEnabled !== false}
+            aria-label={t('setAiGskTools')}
+            disabled={isGenspark}
+            onClick={() => {
+              setSettings({ ...settings, gskToolsEnabled: settings.gskToolsEnabled === false })
+              touch()
+            }}
+          />
         </div>
-        {/* locked on with the genspark provider — chat runs through gsk anyway */}
-        <button
-          className="set-switch"
-          role="switch"
-          aria-checked={settings.gskToolsEnabled !== false}
-          aria-label={t('setAiGskTools')}
-          disabled={isGenspark}
-          onClick={() => {
-            setSettings({ ...settings, gskToolsEnabled: settings.gskToolsEnabled === false })
-            touch()
-          }}
-        />
-      </div>
+      )}
     </>
   )
 }
@@ -1390,16 +1400,19 @@ function AiMediaPane({
         className="set-dd"
         value={value}
         ariaLabel={label}
-        options={options.map((c) => ({
-          value: c.id,
-          label: c.label,
-          render: (
-            <>
-              <ProviderLogo id={c.id} />
-              {c.label}
-            </>
-          ),
-        }))}
+        // Modified for Naigen Desk: no Genspark choice for search or media when compiled out
+        options={options
+          .filter((c) => GENSPARK_ENABLED || c.id !== 'genspark')
+          .map((c) => ({
+            value: c.id,
+            label: c.label,
+            render: (
+              <>
+                <ProviderLogo id={c.id} />
+                {c.label}
+              </>
+            ),
+          }))}
         onPick={onPick}
       />
     </div>
@@ -1818,7 +1831,14 @@ export function SettingsModal({
   target,
 }: SettingsModalProps) {
   const { lang, setLang, t } = useI18n()
-  const [section, setSection] = useState<SectionId>(target?.section ?? 'account')
+  // Modified for Naigen Desk: the Account section only holds Genspark sign-in and credits, so it is skipped when compiled out
+  const [section, setSection] = useState<SectionId>(
+    GENSPARK_ENABLED
+      ? (target?.section ?? 'account')
+      : target?.section && target.section !== 'account'
+        ? target.section
+        : 'general',
+  )
   const navRef = useRef<HTMLElement | null>(null)
   const navPill = useSlidingIndicator(navRef, '.set-nav-item.active', section)
   useEffect(() => {
@@ -1909,9 +1929,11 @@ export function SettingsModal({
         if (alive) setUpdateState(s)
       })
       .catch(() => undefined)
-    void window.aiOffice.githubStars?.().then((n) => {
-      if (alive && n !== null) setGithubStars(n)
-    })
+    if (GENSPARK_ENABLED) {
+      void window.aiOffice.githubStars?.().then((n) => {
+        if (alive && n !== null) setGithubStars(n)
+      })
+    }
     return () => {
       alive = false
     }
@@ -2020,7 +2042,7 @@ export function SettingsModal({
             <div className="set-nav-label" aria-hidden="true">
               {t('settings')}
             </div>
-            {SECTIONS.map((s) => (
+            {SECTIONS.filter((s) => GENSPARK_ENABLED || s.id !== 'account').map((s) => (
               <button
                 key={s.id}
                 className={`set-nav-item${section === s.id ? ' active' : ''}`}
@@ -2034,7 +2056,11 @@ export function SettingsModal({
                 )}
               </button>
             ))}
-            <button type="button" className="set-nav-account" onClick={() => setSection('account')}>
+            <button
+              type="button"
+              className="set-nav-account"
+              onClick={() => setSection(GENSPARK_ENABLED ? 'account' : 'general')}
+            >
               <span className="set-nav-avatar" aria-hidden="true">
                 {(authorName.value || authorName.fallback || email || '?')
                   .slice(0, 1)
@@ -2044,9 +2070,11 @@ export function SettingsModal({
                 <span className="set-nav-account-name">
                   {authorName.value || authorName.fallback || t('setSecAccount')}
                 </span>
-                <span className="set-nav-account-email">
-                  {loggedIn ? email : t('setNotLoggedIn')}
-                </span>
+                {GENSPARK_ENABLED && (
+                  <span className="set-nav-account-email">
+                    {loggedIn ? email : t('setNotLoggedIn')}
+                  </span>
+                )}
               </span>
             </button>
           </nav>
@@ -2055,7 +2083,7 @@ export function SettingsModal({
             data-section={section}
             key={section}
           >
-            {section === 'account' && (
+            {GENSPARK_ENABLED && section === 'account' && (
               <>
                 <h3 className="set-pane-title">{t('setSecAccount')}</h3>
                 <p className="set-pane-desc">{t('setAccountSub')}</p>
@@ -2562,22 +2590,25 @@ export function SettingsModal({
                     }}
                   />
                 </div>
-                <Field
-                  label={t('setGithub')}
-                  value={
-                    githubStars === null
-                      ? 'github.com/genspark-ai/genoffice'
-                      : `github.com/genspark-ai/genoffice · ★ ${formatStars(githubStars)}`
-                  }
-                  action={
-                    <button
-                      className="set-btn"
-                      onClick={() => void window.aiOffice.openGitHubRepo?.()}
-                    >
-                      {t('starOnGitHub')}
-                    </button>
-                  }
-                />
+                {/* Modified for Naigen Desk: the upstream repository link and star count are hidden when Genspark is compiled out */}
+                {GENSPARK_ENABLED && (
+                  <Field
+                    label={t('setGithub')}
+                    value={
+                      githubStars === null
+                        ? 'github.com/genspark-ai/genoffice'
+                        : `github.com/genspark-ai/genoffice · ★ ${formatStars(githubStars)}`
+                    }
+                    action={
+                      <button
+                        className="set-btn"
+                        onClick={() => void window.aiOffice.openGitHubRepo?.()}
+                      >
+                        {t('starOnGitHub')}
+                      </button>
+                    }
+                  />
+                )}
               </>
             )}
           </div>

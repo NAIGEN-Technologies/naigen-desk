@@ -16,6 +16,7 @@ import {
   type AiTokenUsageView,
   useChatRunQueue,
 } from '@genoffice/ui'
+import { GENSPARK_ENABLED } from '@genoffice/ai-provider/browser'
 import { GensparkMark } from '../ribbon-icons'
 import type { ChangePlan } from '@genoffice/xlsx-gateway/domain/workbook.types'
 import { ATTACHMENT_IMAGE_EXTS, type AttachmentMeta } from '../../shared/desktop-api'
@@ -579,7 +580,7 @@ export function AiChatPanel({
                     )}
                   </div>
                 )}
-                {entry.loginRequired && (
+                {GENSPARK_ENABLED && entry.loginRequired && (
                   <button
                     className="ai-login-btn"
                     onClick={() => void window.desktopApi.aiGskLogin()}

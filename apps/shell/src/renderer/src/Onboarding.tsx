@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { GENSPARK_ENABLED } from '@genoffice/ai-provider/browser'
 import appIcon from './assets/app-icon.png'
 import { useI18n } from './locale'
 import type { StringKey } from './locale'
@@ -192,7 +193,8 @@ export function Onboarding({ onDone }: OnboardingProps) {
               {s.bodyKey && (
                 <p className={`onb-body${s.bodyDim ? ' onb-body-dim' : ''}`}>{t(s.bodyKey)}</p>
               )}
-              {s.showStar && (
+              {/* Modified for Naigen Desk: the GitHub star and community-offer blocks are hidden with Genspark */}
+              {GENSPARK_ENABLED && s.showStar && (
                 <div className="onb-star">
                   <p className="onb-star-hint">{t('onbStarHint')}</p>
                   <button
@@ -220,7 +222,7 @@ export function Onboarding({ onDone }: OnboardingProps) {
                   </span>
                 </div>
               )}
-              {s.showOffer && (
+              {GENSPARK_ENABLED && s.showOffer && (
                 <div className="onb-offer">
                   <p className="onb-credits">{renderEmphasis(t('onbCredits'))}</p>
                   <button className="onb-join" onClick={() => void window.aiOffice.openGenTeam()}>

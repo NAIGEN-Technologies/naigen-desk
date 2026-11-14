@@ -148,7 +148,11 @@ import {
   withAttachedSkills,
   type AgentImage,
 } from '@genoffice/agent-core'
-import { imageGenerationAvailable, type AiSettings } from '@genoffice/ai-provider/browser'
+import {
+  GENSPARK_ENABLED,
+  imageGenerationAvailable,
+  type AiSettings,
+} from '@genoffice/ai-provider/browser'
 import { type WorkbookOperation } from '@genoffice/xlsx-gateway/domain/workbook-dsl'
 import {
   columnLabel,
@@ -1806,6 +1810,8 @@ export function App({
             .aiGskStatus()
             .then((status) => {
               if (status.loggedIn) return
+              // Modified for Naigen Desk: no Genspark sign-in prompt when Genspark is compiled out
+              if (!GENSPARK_ENABLED) return
               if ((aiSettingsRef.current?.provider ?? 'genspark') !== 'genspark') return
               setChat((previous) => {
                 const next = [...previous]

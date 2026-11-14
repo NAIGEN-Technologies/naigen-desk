@@ -17,7 +17,11 @@ import {
   type ToolDisplay,
 } from '@genoffice/agent-core'
 import type { RenderSlide } from '@genoffice/pptx-render'
-import { imageGenerationAvailable, mediaAnalysisAvailable } from '@genoffice/ai-provider/browser'
+import {
+  GENSPARK_ENABLED,
+  imageGenerationAvailable,
+  mediaAnalysisAvailable,
+} from '@genoffice/ai-provider/browser'
 import type { AiSettings, AttachmentAddResult, AttachmentMeta } from '../../shared/ipc'
 import { ATTACHMENT_IMAGE_EXTS } from '../../shared/ipc'
 import {
@@ -1370,6 +1374,8 @@ export function AiPanel({
             .aiGskStatus()
             .then((status) => {
               if (status.loggedIn) return
+              // Modified for Naigen Desk: no Genspark sign-in prompt when Genspark is compiled out
+              if (!GENSPARK_ENABLED) return
               if ((settingsRef.current?.provider ?? 'genspark') !== 'genspark') return
               setChat((prev) => {
                 const next = [...prev]
@@ -2174,7 +2180,7 @@ export function AiPanel({
               {entry.error && (
                 <div className="ai-msg-error">{t('aiMsgError', { error: entry.error })}</div>
               )}
-              {entry.loginRequired && (
+              {GENSPARK_ENABLED && entry.loginRequired && (
                 <button className="ai-login-btn" onClick={() => void window.slidesApi.aiGskLogin()}>
                   {t('aiGskLoginBtn')}
                 </button>

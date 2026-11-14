@@ -4,6 +4,7 @@ import type {
   PointerEvent as ReactPointerEvent,
   ReactElement,
 } from 'react'
+import { GENSPARK_ENABLED } from '@genoffice/ai-provider/browser'
 import logoLockup from './assets/genoffice-logo.svg'
 import { KbAskPanel } from './KbAskPanel'
 import { FileBadge } from './file-badge'
@@ -864,7 +865,14 @@ function AccountEntry({
 
   const loggedIn = status?.loggedIn ?? false
   const email = status?.email ?? ''
-  const initial = email ? email[0].toUpperCase() : loggedIn ? 'G' : '?'
+  // Modified for Naigen Desk: with Genspark hidden the entry is a plain Settings button (no sign-in state)
+  const initial = !GENSPARK_ENABLED
+    ? t('settings').slice(0, 1).toUpperCase()
+    : email
+      ? email[0].toUpperCase()
+      : loggedIn
+        ? 'G'
+        : '?'
   const errorText = loginError
     ? {
         timeout: t('loginTimeout'),
@@ -964,7 +972,7 @@ function AccountEntry({
           }}
         />
       )}
-      {!settingsOpen && waiting && authUrl && (
+      {GENSPARK_ENABLED && !settingsOpen && waiting && authUrl && (
         <div className="login-hint" role="status">
           <button className="login-hint-open" onClick={openLoginUrl}>
             {t('loginOpenShort')}
@@ -1016,11 +1024,13 @@ function AccountEntry({
         aria-haspopup="dialog"
         aria-expanded={settingsOpen}
         data-tip={
-          loggedIn
-            ? email || t('loggedInGenspark')
-            : waiting
-              ? t('waitingLogin')
-              : (errorText ?? t('loginGenspark'))
+          !GENSPARK_ENABLED
+            ? t('settings')
+            : loggedIn
+              ? email || t('loggedInGenspark')
+              : waiting
+                ? t('waitingLogin')
+                : (errorText ?? t('loginGenspark'))
         }
         aria-label={t('settings')}
       >
@@ -1056,13 +1066,15 @@ function AccountEntry({
         </span>
         <span className="account-text">
           <span className="account-name">
-            {loggedIn
-              ? email
-                ? email.split('@')[0]
-                : t('loggedIn')
-              : waiting
-                ? t('waitingShort')
-                : t('login')}
+            {!GENSPARK_ENABLED
+              ? t('settings')
+              : loggedIn
+                ? email
+                  ? email.split('@')[0]
+                  : t('loggedIn')
+                : waiting
+                  ? t('waitingShort')
+                  : t('login')}
           </span>
           {!loggedIn && !waiting && errorText && (
             <span className="account-sub error">{errorText}</span>
@@ -1541,7 +1553,8 @@ export function Home() {
   // single source of account state: AccountEntry reports every change (initial
   // load, login, logout), keeping the greeting name and the nav entry in sync
   const handleAccountStatus = useCallback((s: AccountStatus | null) => {
-    const on = s?.loggedIn ?? false
+    // Modified for Naigen Desk: a signed-in state never shows (no greeting name, no cloud projects entry) while Genspark is hidden
+    const on = GENSPARK_ENABLED && (s?.loggedIn ?? false)
     setLoggedIn(on)
     if (!on) setCloudMode(false)
     const name = on ? (s?.email ?? '').split('@')[0] : ''
