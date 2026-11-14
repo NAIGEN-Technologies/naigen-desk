@@ -65,7 +65,12 @@ test.describe.configure({ retries: 1 })
 
 test('context menu offers spelling suggestions and applies one', async () => {
   test.setTimeout(120_000)
-  const launched = await launchShell({ onboardingSeen: true, videoDir: 'spell-suggestions' })
+  // Modified for Naigen Desk: AI panel hidden by default.
+  const launched = await launchShell({
+    onboardingSeen: true,
+    settings: { aiPanelShowSidebar: true },
+    videoDir: 'spell-suggestions',
+  })
   const { app, page } = launched
   try {
     await page.locator('.quick-card').first().click()

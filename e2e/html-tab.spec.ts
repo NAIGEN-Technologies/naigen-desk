@@ -6,7 +6,12 @@ import { launchShell, closeAndSaveVideo, waitForPageWithUrl, screenshotPath } fr
 
 test.describe('html editor', () => {
   test('AI HTML quick card opens an html editor tab in preview view with a ribbon', async () => {
-    const launched = await launchShell({ onboardingSeen: true, videoDir: 'new-html-tab' })
+    // Modified for Naigen Desk: AI panel hidden by default.
+    const launched = await launchShell({
+      onboardingSeen: true,
+      settings: { aiPanelShowSidebar: true },
+      videoDir: 'new-html-tab',
+    })
     const { app, page } = launched
     try {
       const card = page.locator('.quick-card', { hasText: 'AI HTML' })
