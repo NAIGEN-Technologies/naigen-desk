@@ -14,6 +14,8 @@ test('Form Design authors text, checkbox and signature fields that Done writes a
 
   const launched = await launchShell({
     onboardingSeen: true,
+    // Modified for Naigen Desk: AI panel hidden by default; this spec's click coordinates assume it open.
+    settings: { aiPanelShowSidebar: true },
     videoDir: 'pdf-form-design',
     openFile: pdfPath,
   })

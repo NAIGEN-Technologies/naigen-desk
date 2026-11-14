@@ -285,6 +285,8 @@ test.describe('html editor', () => {
 
     const launched = await launchShell({
       onboardingSeen: true,
+      // Modified for Naigen Desk: AI panel hidden by default; the split-view geometry assumes it open.
+      settings: { aiPanelShowSidebar: true },
       videoDir: 'html-inspector',
       openFile: htmlPath,
     })
