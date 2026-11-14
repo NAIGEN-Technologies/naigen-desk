@@ -1,0 +1,186 @@
+{
+  "displayName": "Naigen Desk",
+  "appId": "io.github.naigen-technologies.desk",
+  "upstreamName": "GenOffice",
+  "release": {
+    "owner": "NAIGEN-Technologies",
+    "repo": "naigen-desk",
+    "releaseType": "prerelease"
+  },
+  "repoUrl": "https://github.com/NAIGEN-Technologies/naigen-desk",
+  "releasesUrl": "https://github.com/NAIGEN-Technologies/naigen-desk/releases",
+  "urls": {
+    "literals": [
+      {
+        "from": "https://github.com/genspark-ai/genoffice/releases/latest",
+        "to": "https://github.com/NAIGEN-Technologies/naigen-desk/releases"
+      },
+      {
+        "from": "https://github.com/genspark-ai/genoffice/releases",
+        "to": "https://github.com/NAIGEN-Technologies/naigen-desk/releases"
+      },
+      {
+        "from": "https://github.com/genspark-ai/genoffice",
+        "to": "https://github.com/NAIGEN-Technologies/naigen-desk"
+      },
+      {
+        "from": "github.com/genspark-ai/genoffice",
+        "to": "github.com/NAIGEN-Technologies/naigen-desk"
+      }
+    ],
+    "hostPatterns": [
+      "(https?://)?(?:www\\.)?genspark\\.ai(?:/[A-Za-z0-9_./?=&%#~-]*[A-Za-z0-9_/#=-])?",
+      "(https?://)?(?:www\\.)?genoffice\\.ai(?:/[A-Za-z0-9_./?=&%#~-]*[A-Za-z0-9_/#=-])?"
+    ],
+    "hostTarget": "github.com/NAIGEN-Technologies/naigen-desk"
+  },
+  "gensparkLabels": {
+    "vi": "Trợ lý AI",
+    "en": "AI Assistant",
+    "default": "AI"
+  },
+  "stringFiles": [
+    "apps/shell/src/renderer/src/strings.ts",
+    "apps/shell/src/renderer/src/i18n/help/**/*.ts",
+    "apps/shell/src/renderer/src/i18n/help/**/*.md",
+    "apps/*/src/renderer/i18n/**/*.ts",
+    "packages/i18n/src/**/*.ts",
+    "packages/electron-utils/src/app-menu.ts",
+    "apps/docs/src/main/docs-main.ts",
+    "apps/sheets/src/main/sheets-main.ts",
+    "apps/slides/src/main/i18n-main.ts"
+  ],
+  "titleFiles": [
+    "apps/*/src/renderer/index.html",
+    "apps/shell/src/renderer/pdf-password.html",
+    "apps/shell/src/renderer/update.html",
+    "apps/docs/src/renderer/App.tsx",
+    "apps/docs/src/renderer/components/ribbon-tabs.tsx",
+    "apps/pdf/src/main/pdf-main.ts",
+    "apps/pdf/src/renderer/NoteMargin.tsx",
+    "apps/shell/src/main/index.ts",
+    "apps/shell/src/main/tab-manager.ts",
+    "apps/shell/src/renderer/src/Home.tsx",
+    "apps/slides/src/main/slides-main.ts"
+  ],
+  "jsxLabelFiles": [
+    "apps/docs/src/renderer/components/Ribbon.tsx",
+    "apps/html/src/renderer/components/Ribbon.tsx",
+    "apps/markdown/src/renderer/components/Ribbon.tsx",
+    "apps/pdf/src/renderer/App.tsx",
+    "apps/slides/src/renderer/App.tsx",
+    "apps/slides/src/renderer/components/RibbonHomeTab.tsx",
+    "apps/sheets/src/renderer/ExcelShell.tsx",
+    "apps/html/src/renderer/ai/AiPanel.tsx",
+    "apps/markdown/src/renderer/ai/AiPanel.tsx",
+    "apps/pdf/src/renderer/ai/AiPanel.tsx",
+    "apps/sheets/src/renderer/ai/AiChatPanel.tsx"
+  ],
+  "jsxLabelPatterns": [
+    { "pattern": "(>\\s*)Genspark AI(\\s*<)", "replacement": "$1{LABEL}$2" },
+    { "pattern": "(label=\")Genspark AI(\")", "replacement": "$1{LABEL}$2" },
+    { "pattern": "^(\\s*)Genspark(\\s*)$", "replacement": "$1{LABEL}$2" }
+  ],
+  "keep": {
+    "identifiers": [
+      "_GenOfficeCoverPage",
+      "_GenOfficeCoverPageEnd",
+      "GenOfficeStaticFormFills",
+      "GenOfficeFormField",
+      "GenOfficeCrossHighlightExtension",
+      "GenOfficeOutlineColumnHeaderExtension",
+      "GenOfficePath"
+    ],
+    "literals": ["GenOffice-Dev", "GenOffice Dev"],
+    "fontNames": [
+      "GenOffice Box Drawing",
+      "GenOffice Sans KR",
+      "GenOffice Serif KR",
+      "GenOffice Gothic KR",
+      "GenOffice Hiragino Sans",
+      "GenOffice Hiragino Mincho",
+      "GenOffice Hiragino",
+      "GenOffice Batang",
+      "GenOffice Myungjo",
+      "GenOffice PUA Blank",
+      "GenOffice SimSun Latin",
+      "GenOffice YaHei Latin",
+      "GenOffice Che Latin",
+      "GenOffice Songti SC",
+      "GenOffice Songti TC",
+      "GenOffice Heiti TC",
+      "GenOffice MingLiU",
+      "GenOffice MS Mincho",
+      "GenOffice Fullwidth TC",
+      "GenOffice Cordia",
+      "GenOffice Sarabun",
+      "GenOffice Grid Strut",
+      "GenOffice Bengali",
+      "GenOffice Tamil",
+      "GenOffice Ethiopic",
+      "GenOffice Poppins",
+      "GenOffice DM Sans",
+      "GenOffice Balanced Space",
+      "GenOffice UI Kana"
+    ],
+    "prefixes": ["@genoffice/", "GENOFFICE_"]
+  },
+  "exeRewrites": [
+    {
+      "file": "packages/cli/bin/genoffice.cmd",
+      "replacements": [{ "from": "GenOffice.exe", "to": "Naigen Desk.exe" }]
+    },
+    {
+      "file": "packages/cli/bin/genoffice",
+      "replacements": [{ "from": "GenOffice.exe", "to": "Naigen Desk.exe" }]
+    },
+    {
+      "file": "packages/cli/src/mcp-launch.ts",
+      "replacements": [{ "from": "GenOffice.exe", "to": "Naigen Desk.exe" }]
+    },
+    {
+      "file": "packages/cli/src/resources.ts",
+      "replacements": [
+        {
+          "from": "'Programs', 'GenOffice', 'GenOffice.exe'",
+          "to": "'Programs', 'Naigen Desk', 'Naigen Desk.exe'"
+        },
+        {
+          "from": "env.ProgramFiles, 'GenOffice', 'GenOffice.exe'",
+          "to": "env.ProgramFiles, 'Naigen Desk', 'Naigen Desk.exe'"
+        },
+        { "from": "join(install, 'GenOffice.exe')", "to": "join(install, 'Naigen Desk.exe')" }
+      ]
+    }
+  ],
+  "shell": {
+    "packageJson": "apps/shell/package.json",
+    "builderConfig": "apps/shell/electron-builder.cjs",
+    "homepageFrom": "https://github.com/genspark-ai/genoffice"
+  },
+  "help": {
+    "topicsDir": "apps/shell/src/renderer/src/i18n/help/topics",
+    "imageDir": "apps/shell/src/renderer/src/i18n/help/topics/img"
+  },
+  "icons": {
+    "sourceDir": "naigen/assets",
+    "targetDir": "apps/shell/build",
+    "files": ["icon.ico", "icon.png"]
+  },
+  "scan": {
+    "upstreamIconHashPrefixes": {
+      "apps/shell/build/icon.ico": "5dbcc7c50e29639e",
+      "apps/shell/build/icon.png": "cd04254b02d9f892"
+    },
+    "forbiddenWords": ["GenOffice", "Genspark"],
+    "forbiddenUrls": ["genoffice.ai", "genspark.ai", "x.com/merrickbuilds"],
+    "logoSymbols": ["GensparkMark"],
+    "logoGlobs": ["apps/*/src/renderer/**/*.tsx", "apps/*/src/renderer/**/*.svg"],
+    "packagingFile": "apps/shell/electron-builder.cjs",
+    "packagingForbidden": ["@genspark/cli"],
+    "allowlist": {
+      "lineSubstrings": ["Naigen Desk is based on GenOffice", "based on GenOffice by"],
+      "upstreamLinks": ["https://github.com/genspark-ai/genoffice/blob/main/LICENSE"]
+    }
+  }
+}
