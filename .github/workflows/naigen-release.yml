@@ -1,9 +1,22 @@
-name: Naigen release (probe)
+name: Naigen release
 
-# Probe only: builds the Windows installer without any signing or publish
-# credentials and prints the output file list. Nothing is uploaded.
+# Builds the Windows installer from a commit whose CI run passed, and (only for a
+# tag push or an explicit publish=true) uploads it as a GitHub pre-release.
+# The workflow never creates a tag: tags are created by an org admin.
 on:
+  push:
+    tags: ['v*']
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build, for example 1.0.0 (ignored for tag pushes)'
+        required: true
+        type: string
+      publish:
+        description: 'Create the pre-release (the tag v<version> must already exist)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -13,10 +26,51 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Resolve and validate version
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$EVENT_NAME" = "push" ]; then
+            VERSION="${REF_NAME#v}"
+          else
+            VERSION="$INPUT_VERSION"
+          fi
+          if ! printf '%s' "$VERSION" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::'$VERSION' is not a valid semantic version (expected X.Y.Z or X.Y.Z-label)"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Require a green ci.yml run on this exact commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          COUNT=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?head_sha=${{ github.sha }}&status=success" --jq '.total_count')
+          if [ "$COUNT" -lt 1 ]; then
+            echo "::error::No successful ci.yml run exists for commit ${{ github.sha }}. Wait for CI on this commit to finish (about 26 minutes on main) and run this workflow again."
+            exit 1
+          fi
+          echo "Found $COUNT successful ci.yml run(s) for ${{ github.sha }}"
+
   build:
+    needs: gate
     runs-on: windows-latest
     timeout-minutes: 120
+    permissions:
+      contents: read
     env:
+      VERSION: ${{ needs.gate.outputs.version }}
       # Never let electron-builder look for a certificate on the runner.
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
@@ -43,13 +97,160 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Windows installer
-        run: npm run dist:win
+      - name: Test the branding scripts
+        run: node --test naigen/
 
-      - name: List build output
+      - name: Apply branding
+        run: node naigen/rebrand.mjs --version "$env:VERSION"
+
+      - name: Scan for leftover upstream branding
+        run: node naigen/brand-scan.mjs
+
+      # The root dist:win script cannot forward flags to electron-builder, so its
+      # steps run separately; --publish never keeps electron-builder from
+      # publishing even though rebrand.mjs added a publish configuration.
+      - name: Build application
+        run: |
+          npm run notices
+          npm run build:all
+
+      - name: Package Windows installer
+        run: npm run dist:win -w @genoffice/shell -- --publish never
+
+      - name: Verify build output
         shell: pwsh
         run: |
-          Get-ChildItem -Path apps/shell/release -Recurse -File |
-            Where-Object { $_.FullName -notmatch 'win-unpacked' } |
-            ForEach-Object { '{0,14:N0}  {1}' -f $_.Length, $_.FullName }
-          if (Test-Path apps/shell/release/win-unpacked/resources/app-update.yml) { 'app-update.yml present' } else { 'app-update.yml absent' }
+          $rel = 'apps/shell/release'
+          $unpacked = Join-Path $rel 'win-unpacked'
+          Get-ChildItem -Path $rel -File | ForEach-Object { '{0,14:N0}  {1}' -f $_.Length, $_.Name }
+          Get-ChildItem -Path (Join-Path $unpacked 'resources') | ForEach-Object { '  resources/' + $_.Name }
+          $failures = @()
+          $installer = Join-Path $rel "Naigen Desk Setup $env:VERSION.exe"
+          foreach ($f in @($installer, "$installer.blockmap", (Join-Path $rel 'latest.yml'))) {
+            if (-not (Test-Path -LiteralPath $f)) { $failures += "missing output file: $f" }
+          }
+          $latest = Join-Path $rel 'latest.yml'
+          if (Test-Path -LiteralPath $latest) {
+            Get-Content -LiteralPath $latest
+            if (-not (Select-String -LiteralPath $latest -Pattern "^version: '?$([regex]::Escape($env:VERSION))'?\s*$" -Quiet)) {
+              $failures += "latest.yml version is not $env:VERSION"
+            }
+          }
+          $appUpdate = Join-Path $unpacked 'resources/app-update.yml'
+          if (Test-Path -LiteralPath $appUpdate) {
+            Get-Content -LiteralPath $appUpdate
+            foreach ($p in @('^provider: github\s*$', '^owner: NAIGEN-Technologies\s*$', '^repo: naigen-desk\s*$')) {
+              if (-not (Select-String -LiteralPath $appUpdate -Pattern $p -Quiet)) { $failures += "app-update.yml does not match $p" }
+            }
+          } else { $failures += 'missing win-unpacked/resources/app-update.yml' }
+          foreach ($n in @('LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES.txt')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $unpacked "resources/$n"))) { $failures += "missing resources/$n" }
+          }
+          if (Test-Path -LiteralPath (Join-Path $unpacked 'resources/gsk')) { $failures += 'resources/gsk must not be packaged' }
+          if (-not (Test-Path -LiteralPath (Join-Path $unpacked 'Naigen Desk.exe'))) { $failures += 'missing win-unpacked/Naigen Desk.exe' }
+          if ($failures.Count -gt 0) {
+            $failures | ForEach-Object { Write-Host "::error::$_" }
+            exit 1
+          }
+          'All build output assertions passed'
+
+      # Runs the packaged CLI launcher without any window. The launcher starts
+      # "Naigen Desk.exe", so a successful run also proves the exe-name rewrite.
+      - name: Smoke test packaged CLI
+        shell: pwsh
+        timeout-minutes: 15
+        run: |
+          $cli = (Resolve-Path 'apps/shell/release/win-unpacked/resources/cli/genoffice.cmd').Path
+          if (-not (Select-String -LiteralPath $cli -Pattern 'Naigen Desk.exe' -SimpleMatch -Quiet)) {
+            Write-Host '::error::CLI launcher does not reference Naigen Desk.exe'
+            exit 1
+          }
+          $dir = Join-Path $env:RUNNER_TEMP 'smoke'
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          Copy-Item 'apps/docs/tests/pagination-corpus/docx/01-simple-english.docx' (Join-Path $dir 'sample.docx')
+          Copy-Item 'packages/pptx-engine/tests/fixtures/01_standard_business.pptx' (Join-Path $dir 'sample.pptx')
+          $steps = @(
+            @('info', (Join-Path $dir 'sample.docx')),
+            @('info', (Join-Path $dir 'sample.pptx')),
+            @('convert', (Join-Path $dir 'sample.docx'), '--to', 'pdf', '--out', (Join-Path $dir 'docx.pdf')),
+            @('convert', (Join-Path $dir 'sample.pptx'), '--to', 'pdf', '--out', (Join-Path $dir 'pptx.pdf'))
+          )
+          foreach ($s in $steps) {
+            Write-Host "> genoffice $($s -join ' ')"
+            & $cli @s
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "::error::CLI exited with code $LASTEXITCODE for: $($s -join ' ')"
+              exit 1
+            }
+          }
+          foreach ($pdf in @('docx.pdf', 'pptx.pdf')) {
+            $p = Join-Path $dir $pdf
+            if (-not (Test-Path -LiteralPath $p) -or (Get-Item -LiteralPath $p).Length -le 0) {
+              Write-Host "::error::$pdf was not created or is empty"
+              exit 1
+            }
+            '{0}: {1:N0} bytes' -f $pdf, (Get-Item -LiteralPath $p).Length
+          }
+
+      - name: Upload installer
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: naigen-desk-installer
+          path: |
+            apps/shell/release/Naigen Desk Setup ${{ needs.gate.outputs.version }}.exe
+            apps/shell/release/Naigen Desk Setup ${{ needs.gate.outputs.version }}.exe.blockmap
+            apps/shell/release/latest.yml
+          if-no-files-found: error
+          retention-days: 3
+
+  publish:
+    needs: [gate, build]
+    if: github.event_name == 'push' || inputs.publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The only job that can write to the repository.
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.gate.outputs.version }}
+    steps:
+      - name: Download installer
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: naigen-desk-installer
+          path: dist
+
+      - name: Refuse to touch an existing release
+        run: |
+          # Includes drafts, which a lookup by tag does not return.
+          EXISTING=$(gh api "repos/${{ github.repository }}/releases" --paginate --jq ".[] | select(.tag_name == \"v$VERSION\") | .id")
+          if [ -n "$EXISTING" ]; then
+            echo "::error::A release for v$VERSION already exists. Releases are never overwritten; use a new version."
+            exit 1
+          fi
+
+      - name: Require the tag on the built commit
+        run: |
+          TAG_SHA=$(gh api "repos/${{ github.repository }}/commits/v$VERSION" --jq '.sha' 2>/dev/null || true)
+          if [ -z "$TAG_SHA" ]; then
+            echo "::error::Tag v$VERSION does not exist. This workflow never creates tags; ask an org admin to create it."
+            exit 1
+          fi
+          if [ "$TAG_SHA" != "${{ github.sha }}" ]; then
+            echo "::error::Tag v$VERSION points to $TAG_SHA but this run built ${{ github.sha }}."
+            exit 1
+          fi
+
+      - name: Create pre-release
+        run: |
+          ls -l dist
+          gh release create "v$VERSION" \
+            --repo "${{ github.repository }}" \
+            --verify-tag \
+            --prerelease \
+            --title "Naigen Desk $VERSION" \
+            --notes "Built from commit ${{ github.sha }}. This is a test build pending manual verification; it is not signed." \
+            "dist/Naigen Desk Setup $VERSION.exe" \
+            "dist/Naigen Desk Setup $VERSION.exe.blockmap" \
+            dist/latest.yml
