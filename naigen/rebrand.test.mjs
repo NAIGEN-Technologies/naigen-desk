@@ -195,6 +195,10 @@ test('full run on a fixture tree: expected edits, then no further change', () =>
   assert.match(strs, /GENOFFICE_APP_BIN @genoffice\/shell genoffice/)
   assert.match(strs, /vi: \{\n {4}aiBtn: 'Trợ lý AI'/)
   assert.match(read('apps/docs/src/renderer/index.html'), /<title>Naigen Desk Docs<\/title>/)
+  assert.equal(
+    read('apps/pdf/src/renderer/ai/pdf-skill.ts'),
+    "const P = `You are Naigen Desk's PDF assistant, run genoffice open`\n",
+  )
   assert.ok(
     !read('apps/docs/src/renderer/components/Ribbon.tsx').includes('<span>Genspark AI</span>'),
   )

@@ -91,6 +91,8 @@ export function fixtureFiles() {
     'apps/docs/src/renderer/index.html': '<title>GenOffice Docs</title>\n',
     'apps/docs/src/renderer/components/Ribbon.tsx':
       '<span>Genspark AI</span>\n<div className="g">Genspark AI</div>\n// Genspark AI comment\n',
+    'apps/pdf/src/renderer/ai/pdf-skill.ts':
+      "const P = `You are GenOffice's PDF assistant, run genoffice open`\n",
     'apps/shell/package.json':
       '{\n  "name": "@genoffice/shell",\n  "productName": "GenOffice",\n  "version": "0.13.0",\n  "homepage": "https://github.com/genspark-ai/genoffice"\n}\n',
     'apps/shell/electron-builder.cjs': BUILDER,
@@ -120,6 +122,7 @@ export function fixtureBrand() {
       'apps/shell/src/renderer/src/i18n/help/**/*.md',
     ],
     titleFiles: ['apps/*/src/renderer/index.html'],
+    promptFiles: ['apps/*/src/renderer/ai/**/*.ts'],
     jsxLabelFiles: ['apps/docs/src/renderer/components/Ribbon.tsx'],
   }
 }

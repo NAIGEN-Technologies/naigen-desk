@@ -46,7 +46,7 @@ export function scan({ root, brand = loadBrand() }) {
   const allow = sc.allowlist
   const hits = []
   const stringFiles = matchGlobs(all, brand.stringFiles).files
-  const titleFiles = matchGlobs(all, brand.titleFiles).files
+  const titleFiles = matchGlobs(all, [...brand.titleFiles, ...brand.promptFiles]).files
   const jsxFiles = matchGlobs(all, brand.jsxLabelFiles).files
 
   // AC-2: the upstream name and Genspark in user-visible strings

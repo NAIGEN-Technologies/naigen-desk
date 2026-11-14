@@ -63,6 +63,14 @@
     "apps/shell/src/renderer/src/Home.tsx",
     "apps/slides/src/main/slides-main.ts"
   ],
+  "promptFiles": [
+    "apps/*/src/renderer/ai/**/*.ts",
+    "apps/*/src/renderer/ai/**/*.md",
+    "packages/agent-core/src/**/*.ts",
+    "packages/pptx-ops/src/prompts/**/*.md",
+    "packages/pipelines/src/**/*.md",
+    "packages/ai-provider/src/codex-app-server.ts"
+  ],
   "jsxLabelFiles": [
     "apps/docs/src/renderer/components/Ribbon.tsx",
     "apps/html/src/renderer/components/Ribbon.tsx",

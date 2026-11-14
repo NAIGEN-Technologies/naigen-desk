@@ -214,7 +214,10 @@ export function rebrand({ root, version, brand = loadBrand(), dryRun = false }) 
       'edited',
     )
   }
-  for (const rel of globbed(brand.titleFiles, 'titleFiles')) {
+  for (const rel of globbed(
+    [...brand.titleFiles, ...brand.promptFiles],
+    'titleFiles+promptFiles',
+  )) {
     edit(
       rel,
       (t, f) => {
