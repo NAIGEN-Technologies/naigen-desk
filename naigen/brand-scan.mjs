@@ -120,17 +120,18 @@ export function scan({ root, brand = loadBrand() }) {
     }
   }
 
-  // AC-3: the Genspark logo component still used by the renderer UI
+  // AC-3: the Genspark logo drawing (path data and viewBox of the upstream mark).
+  // The component may keep its upstream name once it draws a neutral icon.
   for (const rel of matchGlobs(all, sc.logoGlobs).files) {
     const text = readText(root, rel)
-    for (const sym of sc.logoSymbols) {
+    for (const sym of sc.logoSignatures) {
       if (!text.includes(sym)) continue
       const line = text.split('\n').findIndex((l) => l.includes(sym)) + 1
       hits.push({
         check: 'genspark-logo',
         file: rel,
         line,
-        text: `${sym} is still defined or used`,
+        text: `Genspark logo drawing (${sym}) is still present`,
         found: sym,
       })
       break

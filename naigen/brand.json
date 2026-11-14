@@ -182,7 +182,7 @@
     },
     "forbiddenWords": ["GenOffice", "Genspark"],
     "forbiddenUrls": ["genoffice.ai", "genspark.ai", "x.com/merrickbuilds"],
-    "logoSymbols": ["GensparkMark"],
+    "logoSignatures": ["M105.115", "0 0 130 130.025"],
     "logoGlobs": ["apps/*/src/renderer/**/*.tsx", "apps/*/src/renderer/**/*.svg"],
     "packagingFile": "apps/shell/electron-builder.cjs",
     "packagingForbidden": ["@genspark/cli"],

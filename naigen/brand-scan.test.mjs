@@ -59,16 +59,29 @@ test('the upstream icon hash is caught', () => {
   rmSync(root, { recursive: true, force: true })
 })
 
-test('a still-used Genspark logo component is reported on its own check', () => {
+test('the upstream Genspark logo drawing is reported on its own check', () => {
   const root = makeFixture()
   const brand = fixtureBrand()
   rebrand({ root, version: '1.0.0', brand })
   writeFileSync(
     join(root, 'apps/docs/src/renderer/components/icons.tsx'),
-    'export function GensparkMark() { return null }\n',
+    'export const GensparkMark = () => <svg viewBox="0 0 130 130.025"><path d="M105.115 1z" /></svg>\n',
   )
   const hits = scan({ root, brand })
   assert.deepEqual([...checks(hits)], ['genspark-logo'])
+  rmSync(root, { recursive: true, force: true })
+})
+
+test('a component that keeps the upstream name but draws a neutral icon passes', () => {
+  const root = makeFixture()
+  const brand = fixtureBrand()
+  rebrand({ root, version: '1.0.0', brand })
+  writeFileSync(
+    join(root, 'apps/docs/src/renderer/components/icons.tsx'),
+    'export const GensparkMark = () => <svg viewBox="0 0 24 24"><path d="M12 2z" /></svg>\n',
+  )
+  const hits = scan({ root, brand })
+  assert.deepEqual([...checks(hits)], [])
   rmSync(root, { recursive: true, force: true })
 })
 
