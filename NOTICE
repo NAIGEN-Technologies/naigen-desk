@@ -52,3 +52,15 @@ Part 4, Transitional) XML Schema files for PresentationML and DrawingML, as
 distributed in the python-docx repository (ref/xsd), with one marked local
 amendment (see tools/ooxml-validate/README.md). They are used only by tests
 and development tooling and are not shipped in the application.
+
+Naigen Desk modifications
+
+This repository is a modified version of GenOffice, distributed as "Naigen
+Desk" by Naigen. Source files changed from the original work carry a
+"Modified for Naigen Desk" comment at each change. The product name,
+application ID, icons, links and other user-facing branding are replaced at
+build time by the scripts in naigen/, so the upstream source of those strings
+stays unchanged in this repository.
+
+GenOffice and Genspark are trademarks of Mainfunc, Inc. Naigen Desk is not
+affiliated with or endorsed by Mainfunc, Inc.
