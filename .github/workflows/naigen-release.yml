@@ -98,7 +98,7 @@ jobs:
         run: npm ci
 
       - name: Test the branding scripts
-        run: node --test naigen/
+        run: node --test "naigen/**/*.test.mjs"
 
       - name: Apply branding
         run: node naigen/rebrand.mjs --version "$env:VERSION"
