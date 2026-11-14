@@ -1,0 +1,55 @@
+name: Naigen release (probe)
+
+# Probe only: builds the Windows installer without any signing or publish
+# credentials and prints the output file list. Nothing is uploaded.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: naigen-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      # Never let electron-builder look for a certificate on the runner.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable branch, 2026-07
+        with:
+          toolchain: stable
+
+      - name: Cache cargo (xlsx-sidecar)
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          workspaces: apps/sheets/native/xlsx-engine
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows installer
+        run: npm run dist:win
+
+      - name: List build output
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path apps/shell/release -Recurse -File |
+            Where-Object { $_.FullName -notmatch 'win-unpacked' } |
+            ForEach-Object { '{0,14:N0}  {1}' -f $_.Length, $_.FullName }
+          if (Test-Path apps/shell/release/win-unpacked/resources/app-update.yml) { 'app-update.yml present' } else { 'app-update.yml absent' }
