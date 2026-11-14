@@ -4,6 +4,7 @@ import type {
   AiSearchSettings,
   AiSettings,
 } from './types'
+import { GENSPARK_ENABLED } from './genspark-gate'
 
 export const AI_SEARCH_PROVIDERS: AiSearchProviderMeta[] = [
   {
@@ -26,7 +27,8 @@ export const AI_SEARCH_PROVIDERS: AiSearchProviderMeta[] = [
 
 export function defaultAiSearchSettings(): AiSearchSettings {
   return {
-    provider: 'genspark',
+    // Modified for Naigen Desk: a BYOK default (no key, so it stays inactive) when Genspark is compiled out
+    provider: GENSPARK_ENABLED ? 'genspark' : 'tavily',
     providers: {
       serper: { apiKey: '' },
       serply: { apiKey: '' },
@@ -59,7 +61,10 @@ export function resolveAiSearchSettings(
     const key = stored.providers?.[id]?.apiKey
     if (typeof key === 'string') providers[id] = { apiKey: key.trim() }
   }
-  return { provider: stored.provider ?? defaults.provider, providers }
+  // Modified for Naigen Desk: a stored Genspark choice is replaced by the default when Genspark is compiled out
+  const storedProvider =
+    !GENSPARK_ENABLED && stored.provider === 'genspark' ? undefined : stored.provider
+  return { provider: storedProvider ?? defaults.provider, providers }
 }
 
 /**

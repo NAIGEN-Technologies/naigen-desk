@@ -211,7 +211,9 @@ export const tMain = createI18n({
     errNotImage: 'not a supported image type',
     errGskNotLoggedIn:
       'Not signed in to Genspark: click “Sign in to Genspark” below, sign in, then retry',
-    errNoApiKey: 'No API key configured for {provider}',
+    // Modified for Naigen Desk: the no-provider error now points to Settings, AI Model (own API key) instead of a Genspark sign-in (en and vi; other locales keep the plain wording)
+    errNoApiKey:
+      'No API key configured for {provider}. Open Settings → AI Model and add your own key.',
     errNoModel: 'No model name configured',
     errGskCli: 'gsk not signed in: run gsk login to sign in to your Genspark account first',
     errNoDeckAppend:
@@ -340,7 +342,8 @@ export const tMain = createI18n({
     errNotImage: 'loại hình ảnh không được hỗ trợ',
     errGskNotLoggedIn:
       'Chưa đăng nhập vào Genspark: nhấp vào “Đăng nhập vào Genspark” bên dưới, đăng nhập, sau đó thử lại',
-    errNoApiKey: 'Chưa cấu hình khóa API cho {provider}',
+    errNoApiKey:
+      'Chưa cấu hình khóa API cho {provider}. Mở Cài đặt → Mô hình AI và nhập khóa API của riêng bạn.',
     errNoModel: 'Chưa cấu hình tên mô hình',
     errGskCli:
       'gsk chưa đăng nhập: trước tiên hãy chạy gsk login để đăng nhập vào tài khoản Genspark của bạn',

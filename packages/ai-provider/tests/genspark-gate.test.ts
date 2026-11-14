@@ -51,4 +51,25 @@ describe('Genspark gate off', () => {
       }),
     ).toThrow(/not available/)
   })
+
+  it('media and search defaults never point at Genspark, and a stored Genspark choice is replaced', async () => {
+    vi.resetModules()
+    vi.doMock('../src/genspark-gate', () => ({ GENSPARK_ENABLED: false }))
+    const media = await import('../src/media')
+    const search = await import('../src/search-settings')
+    const defaults = media.defaultAiMediaSettings()
+    expect(defaults.imageProvider).not.toBe('genspark')
+    expect(defaults.analysisProvider).not.toBe('genspark')
+    expect(defaults.videoAnalysisProvider).not.toBe('genspark')
+    const stored = media.resolveAiMediaSettings({
+      imageProvider: 'genspark',
+      analysisProvider: 'genspark',
+      videoAnalysisProvider: 'genspark',
+    })
+    expect(stored.imageProvider).toBe(defaults.imageProvider)
+    expect(stored.analysisProvider).toBe(defaults.analysisProvider)
+    expect(stored.videoAnalysisProvider).toBe(defaults.videoAnalysisProvider)
+    expect(search.defaultAiSearchSettings().provider).not.toBe('genspark')
+    expect(search.resolveAiSearchSettings({ provider: 'genspark' }).provider).not.toBe('genspark')
+  })
 })

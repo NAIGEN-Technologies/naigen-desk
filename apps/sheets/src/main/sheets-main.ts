@@ -320,7 +320,9 @@ const tMain = createI18n({
     errNotImage: 'not a supported image type',
     errGskNotLoggedIn:
       'Not signed in to Genspark: click “Sign in to Genspark” below, sign in, then retry',
-    errNoApiKey: 'No API key configured for {provider}',
+    // Modified for Naigen Desk: the no-provider error now points to Settings, AI Model (own API key) instead of a Genspark sign-in (en and vi; other locales keep the plain wording)
+    errNoApiKey:
+      'No API key configured for {provider}. Open Settings → AI Model and add your own key.',
     errAiRegion:
       "This model's provider does not serve your current region — pick another model or change your network",
     errAiBusy: 'The AI service is busy right now — please try again in a moment',
@@ -390,7 +392,8 @@ const tMain = createI18n({
     errNotImage: 'loại hình ảnh không được hỗ trợ',
     errGskNotLoggedIn:
       'Chưa đăng nhập vào Genspark: nhấp vào “Đăng nhập vào Genspark” bên dưới, đăng nhập, sau đó thử lại',
-    errNoApiKey: 'Chưa cấu hình khóa API cho {provider}',
+    errNoApiKey:
+      'Chưa cấu hình khóa API cho {provider}. Mở Cài đặt → Mô hình AI và nhập khóa API của riêng bạn.',
     errAiRegion:
       'Nhà cung cấp của mô hình này không phục vụ khu vực hiện tại của bạn — hãy chọn mô hình khác hoặc đổi mạng',
     errAiBusy: 'Dịch vụ AI hiện đang bận — vui lòng thử lại sau giây lát',

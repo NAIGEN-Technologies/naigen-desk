@@ -5,6 +5,7 @@ import type {
   AiMediaSettings,
   AiSettings,
 } from './types'
+import { GENSPARK_ENABLED } from './genspark-gate'
 
 export const OPENAI_IMAGES_BASE_URL = 'https://api.openai.com/v1'
 export const GEMINI_MEDIA_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
@@ -298,6 +299,10 @@ export function providerHasCapability(
   return !!meta.analysisProtocol
 }
 
+// Modified for Naigen Desk: with Genspark compiled out the media defaults point at BYOK providers (no key, so they stay inactive until the user adds one)
+const DEFAULT_IMAGE_PROVIDER: AiMediaProviderId = GENSPARK_ENABLED ? 'genspark' : 'openai'
+const DEFAULT_ANALYSIS_PROVIDER: AiMediaProviderId = GENSPARK_ENABLED ? 'genspark' : 'gemini'
+
 export function defaultAiMediaSettings(): AiMediaSettings {
   const providers = {} as AiMediaSettings['providers']
   for (const meta of AI_MEDIA_PROVIDERS) {
@@ -309,9 +314,9 @@ export function defaultAiMediaSettings(): AiMediaSettings {
     }
   }
   return {
-    imageProvider: 'genspark',
-    analysisProvider: 'genspark',
-    videoAnalysisProvider: 'genspark',
+    imageProvider: DEFAULT_IMAGE_PROVIDER,
+    analysisProvider: DEFAULT_ANALYSIS_PROVIDER,
+    videoAnalysisProvider: DEFAULT_ANALYSIS_PROVIDER,
     providers,
   }
 }
@@ -346,12 +351,16 @@ export function resolveAiMediaSettings(
     }
   }
   const legacy = stored.provider
-  const analysisProvider = stored.analysisProvider ?? legacy ?? defaults.analysisProvider
+  // Modified for Naigen Desk: a stored Genspark choice is replaced by the default when Genspark is compiled out
+  const notGenspark = (id: AiMediaProviderId | undefined): AiMediaProviderId | undefined =>
+    !GENSPARK_ENABLED && id === 'genspark' ? undefined : id
+  const analysisProvider =
+    notGenspark(stored.analysisProvider ?? legacy) ?? defaults.analysisProvider
   return {
-    imageProvider: stored.imageProvider ?? legacy ?? defaults.imageProvider,
+    imageProvider: notGenspark(stored.imageProvider ?? legacy) ?? defaults.imageProvider,
     analysisProvider,
     // a pre-split file used one vendor for all media analysis
-    videoAnalysisProvider: stored.videoAnalysisProvider ?? analysisProvider,
+    videoAnalysisProvider: notGenspark(stored.videoAnalysisProvider) ?? analysisProvider,
     providers,
   }
 }
