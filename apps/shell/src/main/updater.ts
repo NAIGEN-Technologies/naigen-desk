@@ -635,7 +635,7 @@ export async function checkForUpdatesNow(): Promise<void> {
 
 export function initAutoUpdater(
   getWindow: () => BrowserWindow | null,
-  initialChannel: UpdateChannel = 'stable',
+  _initialChannel: UpdateChannel = 'stable',
   /** Settings › "Check for updates automatically"; read at every background check (genoffice#2127) */
   autoCheckEnabled: () => boolean = () => true,
   /** Settings › "Install updates silently" (off by default): a background check
