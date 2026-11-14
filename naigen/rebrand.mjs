@@ -250,7 +250,7 @@ export function rebrand({ root, version, brand = loadBrand(), dryRun = false }) 
       if (!prod.test(out)) throw new Error(`${pkg}: productName not found`)
       out = out.replace(prod, `$1"${brand.displayName}"`)
       if (version) {
-        const ver = /^(  "version":\s*)"[^"]*"/m
+        const ver = /^( {2}"version":\s*)"[^"]*"/m
         if (!ver.test(out)) throw new Error(`${pkg}: version not found`)
         out = out.replace(ver, `$1"${version}"`)
       }
