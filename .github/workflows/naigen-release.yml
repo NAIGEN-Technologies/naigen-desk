@@ -244,6 +244,16 @@ jobs:
 
       - name: Create pre-release
         run: |
+          # latest.yml names the installer with hyphens, while GitHub turns spaces
+          # in an uploaded file name into dots. Upload under the name latest.yml
+          # uses, or the updater would request a file that does not exist.
+          EXE_NAME=$(sed -n 's/^path: //p' dist/latest.yml | tr -d '\r')
+          if [ -z "$EXE_NAME" ]; then
+            echo "::error::latest.yml has no path entry"
+            exit 1
+          fi
+          mv "dist/Naigen Desk Setup $VERSION.exe" "dist/$EXE_NAME"
+          mv "dist/Naigen Desk Setup $VERSION.exe.blockmap" "dist/$EXE_NAME.blockmap"
           ls -l dist
           gh release create "v$VERSION" \
             --repo "${{ github.repository }}" \
@@ -251,6 +261,6 @@ jobs:
             --prerelease \
             --title "Naigen Desk $VERSION" \
             --notes "Built from commit ${{ github.sha }}. This is a test build pending manual verification; it is not signed." \
-            "dist/Naigen Desk Setup $VERSION.exe" \
-            "dist/Naigen Desk Setup $VERSION.exe.blockmap" \
+            "dist/$EXE_NAME" \
+            "dist/$EXE_NAME.blockmap" \
             dist/latest.yml
