@@ -2,6 +2,7 @@
 /// English-only and (for role:'windowMenu' on Windows/Linux) follow macOS
 /// conventions (Zoom, Ctrl+M minimize, Bring All to Front).
 import type { MenuItemConstructorOptions, WebContents } from 'electron'
+import { ABOUT_FILES, aboutFilePath, aboutTexts } from './about-licenses'
 import { baseLang, contextMenuLabels, type ContextMenuLabels } from './context-menu'
 
 export interface AppMenuLabels extends ContextMenuLabels {
@@ -684,20 +685,38 @@ export function aboutMenuItem(labels: AppMenuLabels): MenuItemConstructorOptions
   return {
     label: labels.about,
     click: async () => {
-      const { app, dialog, clipboard } = await import('electron')
+      const { app, dialog, clipboard, shell } = await import('electron')
       const version = app.getVersion()
       const canCheck = updateCheckInvoker !== null
+      // Modified for Naigen Desk: attribution line and buttons for the license files
+      const texts = aboutTexts(labels.about === LABELS.vi?.about)
+      const firstFileButton = canCheck ? 3 : 2
       const { response } = await dialog.showMessageBox({
         type: 'info',
         title: 'GenOffice',
         message: 'GenOffice',
-        detail: `${labels.version} ${version}`,
-        buttons: ['OK', labels.copy, ...(canCheck ? [labels.checkUpdates] : [])],
+        detail: `${labels.version} ${version}\n\n${texts.attribution}`,
+        buttons: [
+          'OK',
+          labels.copy,
+          ...(canCheck ? [labels.checkUpdates] : []),
+          ...ABOUT_FILES.map((f) => texts.buttons[f]),
+        ],
         defaultId: 0,
         cancelId: 0,
       })
       if (response === 1) clipboard.writeText(`GenOffice ${version}`)
-      if (response === 2) updateCheckInvoker?.()
+      if (response === 2 && canCheck) updateCheckInvoker?.()
+      const file = ABOUT_FILES[response - firstFileButton]
+      if (file) {
+        void shell.openPath(
+          aboutFilePath(file, {
+            isPackaged: app.isPackaged,
+            appPath: app.getAppPath(),
+            resourcesPath: process.resourcesPath,
+          }),
+        )
+      }
     },
   }
 }

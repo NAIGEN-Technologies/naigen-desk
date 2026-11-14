@@ -174,6 +174,19 @@ export function scan({ root, brand = loadBrand() }) {
         ),
       )
     }
+    // AC-4: the license files must be packaged next to the third-party notices
+    const builderText = readText(root, sc.packagingFile)
+    for (const need of sc.packagingRequired ?? []) {
+      if (!builderText.includes(need)) {
+        hits.push({
+          check: 'packaging',
+          file: sc.packagingFile,
+          line: 0,
+          text: `missing extraResources entry ${need}`,
+          found: need,
+        })
+      }
+    }
   } else {
     hits.push({
       check: 'packaging',

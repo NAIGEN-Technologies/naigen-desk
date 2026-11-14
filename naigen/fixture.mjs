@@ -56,6 +56,10 @@ const config = {
   productName: 'GenOffice',
   extraResources: [
     {
+      from: 'build/THIRD-PARTY-NOTICES.txt',
+      to: 'THIRD-PARTY-NOTICES.txt',
+    },
+    {
       from: '../../packages/cli/dist/genoffice.cjs',
       to: 'cli/genoffice.cjs',
     },

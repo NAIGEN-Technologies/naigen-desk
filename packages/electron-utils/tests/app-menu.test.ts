@@ -1,9 +1,11 @@
+import { basename } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const electronMock = vi.hoisted(() => ({
   getFocusedWebContents: vi.fn(),
   showMessageBox: vi.fn(),
   writeText: vi.fn(),
+  openPath: vi.fn(),
 }))
 
 vi.mock('electron', () => ({
@@ -12,6 +14,11 @@ vi.mock('electron', () => ({
   },
   app: {
     getVersion: () => '1.2.3',
+    isPackaged: true,
+    getAppPath: () => '/app',
+  },
+  shell: {
+    openPath: electronMock.openPath,
   },
   dialog: {
     showMessageBox: electronMock.showMessageBox,
@@ -205,6 +212,8 @@ describe('viewMenuTemplate', () => {
   })
 })
 
+const FILE_BUTTONS_EN = ['License', 'Notice', 'Third-party notices']
+
 describe('checkUpdatesMenuItem / manual update check wiring', () => {
   it('sits directly above About in the help menu', () => {
     const items = submenuOf(helpMenuTemplate(en))
@@ -228,7 +237,11 @@ describe('checkUpdatesMenuItem / manual update check wiring', () => {
     const about = aboutMenuItem(en) as { click: () => Promise<void> }
 
     await about.click()
-    expect(electronMock.showMessageBox.mock.calls.at(-1)![0].buttons).toEqual(['OK', en.copy])
+    expect(electronMock.showMessageBox.mock.calls.at(-1)![0].buttons).toEqual([
+      'OK',
+      en.copy,
+      ...FILE_BUTTONS_EN,
+    ])
 
     setUpdateCheckInvoker(() => {})
     await about.click()
@@ -236,6 +249,7 @@ describe('checkUpdatesMenuItem / manual update check wiring', () => {
       'OK',
       en.copy,
       en.checkUpdates,
+      ...FILE_BUTTONS_EN,
     ])
   })
 
@@ -252,6 +266,30 @@ describe('checkUpdatesMenuItem / manual update check wiring', () => {
     electronMock.showMessageBox.mockResolvedValue({ response: 1 })
     await (aboutMenuItem(en) as { click: () => Promise<void> }).click()
     expect(electronMock.writeText).toHaveBeenCalledWith('GenOffice 1.2.3')
+  })
+
+  it('About dialog states the upstream attribution, in English and Vietnamese', async () => {
+    electronMock.showMessageBox.mockResolvedValue({ response: 0 })
+    await (aboutMenuItem(en) as { click: () => Promise<void> }).click()
+    expect(electronMock.showMessageBox.mock.calls.at(-1)![0].detail).toContain(
+      'Based on GenOffice by Mainfunc, Inc., licensed under Apache-2.0',
+    )
+    await (aboutMenuItem(appMenuLabels('vi')) as { click: () => Promise<void> }).click()
+    const call = electronMock.showMessageBox.mock.calls.at(-1)![0]
+    expect(call.detail).toContain('Dựa trên GenOffice của Mainfunc, Inc., giấy phép Apache-2.0')
+    expect(call.buttons.slice(-3)).toEqual(['Giấy phép', 'Ghi công', 'Bên thứ ba'])
+  })
+
+  it('About dialog opens LICENSE, NOTICE and the third-party notices from resources', async () => {
+    Object.defineProperty(process, 'resourcesPath', { value: '/res', configurable: true })
+    const click = (aboutMenuItem(en) as { click: () => Promise<void> }).click
+    const opened: string[] = []
+    electronMock.openPath.mockImplementation((p: string) => opened.push(p))
+    for (const response of [2, 3, 4]) {
+      electronMock.showMessageBox.mockResolvedValue({ response })
+      await click()
+    }
+    expect(opened.map((p) => basename(p))).toEqual(['LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES.txt'])
   })
 })
 

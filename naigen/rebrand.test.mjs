@@ -5,6 +5,7 @@ import { test } from 'node:test'
 import { loadBrand } from './brand-lib.mjs'
 import { fixtureBrand, makeFixture } from './fixture.mjs'
 import {
+  injectLicenseResources,
   injectPublish,
   rebrand,
   removeGskPackaging,
@@ -155,6 +156,28 @@ test('publish config injects the GitHub provider once', () => {
   assert.throws(() => injectPublish('no export here', brand), /module\.exports/)
 })
 
+test('license files are packaged next to the third-party notices, once', () => {
+  const src = readFileSync(join(makeFixture(), 'apps/shell/electron-builder.cjs'), 'utf8')
+  const once = injectLicenseResources(src).text
+  assert.match(once, /from: '\.\.\/\.\.\/LICENSE',\n\s+to: 'LICENSE'/)
+  assert.match(once, /from: '\.\.\/\.\.\/NOTICE',\n\s+to: 'NOTICE'/)
+  assert.ok(once.indexOf('THIRD-PARTY-NOTICES.txt') < once.indexOf("to: 'LICENSE'"))
+  assert.equal(injectLicenseResources(once).text, once)
+  assert.throws(() => injectLicenseResources('extraResources: []'), /THIRD-PARTY-NOTICES/)
+})
+
+test('the attribution is allowed only on its own line', () => {
+  const allow = brand.scan.allowlist.lineSubstrings
+  const en = 'Based on GenOffice by Mainfunc, Inc., licensed under Apache-2.0'
+  const vi = 'Dựa trên GenOffice của Mainfunc, Inc., giấy phép Apache-2.0'
+  for (const line of [en, vi])
+    assert.ok(
+      allow.some((a) => line.includes(a)),
+      line,
+    )
+  assert.ok(!allow.some((a) => 'about: About GenOffice'.includes(a)))
+})
+
 test('full run on a fixture tree: expected edits, then no further change', () => {
   const root = makeFixture()
   const fb = fixtureBrand()
@@ -172,6 +195,8 @@ test('full run on a fixture tree: expected edits, then no further change', () =>
   assert.match(builder, /productName: 'Naigen Desk'/)
   assert.match(builder, /provider: 'github'/)
   assert.ok(!builder.includes('@genspark/cli'))
+  assert.match(builder, /to: 'LICENSE'/)
+  assert.match(builder, /to: 'NOTICE'/)
 
   assert.equal(
     read('packages/cli/bin/genoffice.cmd'),

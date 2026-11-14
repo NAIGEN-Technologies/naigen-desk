@@ -186,8 +186,14 @@
     "logoGlobs": ["apps/*/src/renderer/**/*.tsx", "apps/*/src/renderer/**/*.svg"],
     "packagingFile": "apps/shell/electron-builder.cjs",
     "packagingForbidden": ["@genspark/cli"],
+    "packagingRequired": ["from: '../../LICENSE'", "from: '../../NOTICE'"],
     "allowlist": {
-      "lineSubstrings": ["Naigen Desk is based on GenOffice", "based on GenOffice by"],
+      "lineSubstrings": [
+        "Naigen Desk is based on GenOffice",
+        "based on GenOffice by",
+        "Based on GenOffice by",
+        "Dựa trên GenOffice của"
+      ],
       "upstreamLinks": ["https://github.com/genspark-ai/genoffice/blob/main/LICENSE"]
     }
   }

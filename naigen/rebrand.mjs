@@ -21,6 +21,7 @@ import {
 const IMG_LINE_RE = /^\s*!\[[^\]]*\]\(img\/[^)]*\)\s*$/
 const IMG_INLINE_RE = /!\[[^\]]*\]\(img\/[^)]*\)/g
 const PUBLISH_MARKER = 'naigen-desk:publish'
+const LICENSES_MARKER = 'naigen-desk:licenses'
 
 class Report {
   constructor() {
@@ -181,6 +182,38 @@ export function injectPublish(text, brand) {
   return { text: text.replace(anchor, `${block}module.exports = config`), count: 1 }
 }
 
+/**
+ * Ships LICENSE and NOTICE next to THIRD-PARTY-NOTICES.txt in the installed
+ * resources, so the About dialog can open all three (Apache-2.0 sections 4(a)
+ * and 4(d)). Upstream packages only the generated third-party notices.
+ */
+export function injectLicenseResources(text) {
+  if (text.includes(LICENSES_MARKER)) return { text, count: 0 }
+  const anchor =
+    /^([ \t]*)\{\r?\n[ \t]*from: 'build\/THIRD-PARTY-NOTICES\.txt',\r?\n[ \t]*to: 'THIRD-PARTY-NOTICES\.txt',\r?\n[ \t]*\},\r?\n/m
+  const m = anchor.exec(text)
+  if (!m) {
+    throw new Error(
+      'electron-builder.cjs: the THIRD-PARTY-NOTICES.txt extraResources entry was not found',
+    )
+  }
+  const i = m[1]
+  const block = [
+    `${i}// ${LICENSES_MARKER} (added by naigen/rebrand.mjs): the About dialog opens these`,
+    `${i}{`,
+    `${i}  from: '../../LICENSE',`,
+    `${i}  to: 'LICENSE',`,
+    `${i}},`,
+    `${i}{`,
+    `${i}  from: '../../NOTICE',`,
+    `${i}  to: 'NOTICE',`,
+    `${i}},`,
+    '',
+  ].join('\n')
+  const end = m.index + m[0].length
+  return { text: text.slice(0, end) + block + text.slice(end), count: 2 }
+}
+
 export function rebrand({ root, version, brand = loadBrand(), dryRun = false }) {
   const report = new Report()
   const all = walkFiles(root)
@@ -295,6 +328,7 @@ export function rebrand({ root, version, brand = loadBrand(), dryRun = false }) 
   // 5-6. publish config and removal of the gsk CLI from packaging (same file)
   edit(builder, (t) => removeGskPackaging(t), 'gsk-removed')
   edit(builder, (t) => injectPublish(t, brand), 'publish-config')
+  edit(builder, (t) => injectLicenseResources(t), 'license-resources')
 
   // 7. help pages keep text only
   const topics = all.filter(
