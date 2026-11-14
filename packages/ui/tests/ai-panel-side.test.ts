@@ -64,7 +64,8 @@ describe('AI panel initial open state', () => {
   })
 
   it('follows the remembered per-app state while the setting is on', () => {
-    applyAiPanelPrefs({ openInNewDocs: true })
+    // Modified for Naigen Desk: AI panel hidden by default.
+    applyAiPanelPrefs({ showAiSidebar: true, openInNewDocs: true })
     expect(aiPanelInitiallyOpen('k')).toBe(true)
     localStorage.setItem('k', '0')
     expect(aiPanelInitiallyOpen('k')).toBe(false)
@@ -77,11 +78,12 @@ describe('AI panel initial open state', () => {
   })
 
   it('leaves the remembered state alone while off so turning it back on restores it', () => {
-    applyAiPanelPrefs({ openInNewDocs: true })
+    // Modified for Naigen Desk: AI panel hidden by default.
+    applyAiPanelPrefs({ showAiSidebar: true, openInNewDocs: true })
     rememberAiPanelOpen('k', true)
     applyAiPanelPrefs({ openInNewDocs: false })
     rememberAiPanelOpen('k', false)
-    applyAiPanelPrefs({ openInNewDocs: true })
+    applyAiPanelPrefs({ showAiSidebar: true, openInNewDocs: true })
     expect(aiPanelInitiallyOpen('k')).toBe(true)
     rememberAiPanelOpen('k', false)
     expect(aiPanelInitiallyOpen('k')).toBe(false)

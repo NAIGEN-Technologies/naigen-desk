@@ -33,7 +33,8 @@ let root: ReturnType<typeof createRoot>
 
 beforeEach(() => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
-  applyAiPanelPrefs({})
+  // Modified for Naigen Desk: AI panel hidden by default.
+  applyAiPanelPrefs({ showAiSidebar: true })
   host = document.createElement('div')
   document.body.append(host)
   root = createRoot(host)

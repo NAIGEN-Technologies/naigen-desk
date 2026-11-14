@@ -29,9 +29,9 @@ describe('normalizeAiPanelPrefs', () => {
       ...DEFAULT_AI_PANEL_PREFS,
       showAiSidebar: false,
     })
-    // absent field means on: settings files written before the toggle existed
-    // must not disable the sidebar
-    expect(normalizeAiPanelPrefs({}).showAiSidebar).toBe(true)
+    // absent field falls back to the default
+    // Modified for Naigen Desk: AI panel hidden by default.
+    expect(normalizeAiPanelPrefs({}).showAiSidebar).toBe(false)
   })
 
   it('clamps and rounds the custom size, accepting numeric strings from old settings files', () => {

@@ -61,7 +61,12 @@ test.describe('#1589 the "open the AI panel in new documents" setting', () => {
     // through newFile too — a test that opened an existing file instead would
     // never run the line under test and would pass either way.
     test.setTimeout(300_000)
-    const launched = await launchShell({ onboardingSeen: true, videoDir: 'ai-panel-1589-on-new' })
+    // Modified for Naigen Desk: AI panel hidden by default.
+    const launched = await launchShell({
+      onboardingSeen: true,
+      settings: { aiPanelShowSidebar: true },
+      videoDir: 'ai-panel-1589-on-new',
+    })
     try {
       await expect(launched.page.locator('.quick-card').first()).toContainText('AI Docs')
       await launched.page.locator('.quick-card').first().click()

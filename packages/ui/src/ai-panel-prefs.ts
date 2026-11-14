@@ -40,7 +40,8 @@ export const DEFAULT_AI_PANEL_PREFS: AiPanelPrefs = {
   customFontSize: AI_FONT_BASE_PX,
   spellcheck: true,
   openInNewDocs: true,
-  showAiSidebar: true,
+  // Modified for Naigen Desk: the AI panel starts hidden; users turn it on in Settings.
+  showAiSidebar: false,
   showAiAskTrigger: true,
 }
 
