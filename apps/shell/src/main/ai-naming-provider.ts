@@ -18,6 +18,7 @@ import {
   defaultAiSettings,
   resolveAiSettings,
   resolveProfileCredential,
+  GENSPARK_ENABLED,
 } from '@genoffice/ai-provider'
 
 /** The provider to call, and the credentials to call it with. */
@@ -40,6 +41,8 @@ export function resolveNamingProvider(stored: unknown, gskKey: string): NamingPr
   // to genspark rather than silently disabling AI
   settings.provider = activeProvider(settings)
   const provider = settings.provider
+  // Modified for Naigen Desk: file naming never goes to Genspark
+  if (!GENSPARK_ENABLED && provider === 'genspark') return null
   const storedConfig = settings.providers?.[provider]
   if (!storedConfig) return null
   let config = storedConfig

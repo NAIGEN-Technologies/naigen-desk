@@ -14,6 +14,7 @@ import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from '
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { GENSPARK_ENABLED } from '@genoffice/ai-provider'
 import { asRecord, gskProxyUrl } from './shared'
 import { nativeWaf } from './native-waf'
 
@@ -157,6 +158,8 @@ function readAuthFile(): GenofficeAuth | null {
 }
 
 export function loadGenofficeAuth(): GenofficeAuth | null {
+  // Modified for Naigen Desk: never read a stored Genspark key when Genspark is compiled out
+  if (!GENSPARK_ENABLED) return null
   if (cachedAuth === undefined) cachedAuth = readAuthFile()
   return cachedAuth
 }
@@ -432,6 +435,8 @@ let activeLogin: { cancel: () => void } | null = null
  * opens `url` in the system browser. Returns whether the flow was started.
  */
 export function startGenofficeLogin(onEvent?: (progress: GskLoginProgress) => void): boolean {
+  // Modified for Naigen Desk: no device-code login, no request to Genspark
+  if (!GENSPARK_ENABLED) return false
   activeLogin?.cancel()
   const emit = onEvent ?? (() => {})
   const controller = new AbortController()
@@ -552,6 +557,8 @@ export function recoverFromRejectedGskKey(
   key: string,
   options: { allowLogin?: boolean } = {},
 ): Promise<GskRecoveryOutcome> {
+  // Modified for Naigen Desk: a 401 never starts a login or a silent re-mint when Genspark is off
+  if (!GENSPARK_ENABLED) return Promise.resolve('login_required')
   const allowLogin = options.allowLogin ?? true
   const generation = signOutGeneration
   if (recovery) {
@@ -605,6 +612,8 @@ export function genofficeLoginInFlight(): boolean {
  * is the caller's browser opener (this module is Electron-free).
  */
 export function ensureGenofficeLogin(openUrl: (url: string) => void): void {
+  // Modified for Naigen Desk: fail closed, the caller stays in the not-signed-in state
+  if (!GENSPARK_ENABLED) return
   if (genofficeLoginInFlight()) return
   startGenofficeLogin((progress) => {
     if (progress.url) openUrl(progress.url)
@@ -617,6 +626,8 @@ export function ensureGenofficeLogin(openUrl: (url: string) => void): void {
  * (~/.genspark-tool-cli) is untouched — terminal gsk and Claw keep working.
  */
 export async function genofficeLogout(): Promise<void> {
+  // Modified for Naigen Desk: nothing to revoke and no request to send when Genspark is off
+  if (!GENSPARK_ENABLED) return
   // invalidate any in-flight recovery first: its re-mint or login must not undo this sign-out
   signOutGeneration++
   const auth = loadGenofficeAuth()

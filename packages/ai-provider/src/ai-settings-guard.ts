@@ -17,6 +17,8 @@ import { join } from 'node:path'
 
 import { normalizeCustomProfile } from './custom-profile'
 import { isThinkingEffort } from './thinking-effort'
+import { GENSPARK_ENABLED } from './genspark-gate'
+import { fallbackProvider } from './providers'
 import { AI_PROVIDER_ADAPTERS, normalizeBaseUrl } from './registry'
 import type {
   AiCustomEndpoint,
@@ -218,7 +220,11 @@ export function sanitizeAiSettings(input: unknown): AiSettings | null {
     ;(providers as Record<string, AiProviderConfig>)[id] = sanitizeProviderConfig(config)
   }
   const settings: AiSettings = {
-    provider: provider as AiProviderId,
+    // Modified for Naigen Desk: a Genspark selection from the renderer is stored as the fallback provider
+    provider:
+      !GENSPARK_ENABLED && provider === 'genspark'
+        ? fallbackProvider()
+        : (provider as AiProviderId),
     providers,
   }
   if (typeof raw.gskToolsEnabled === 'boolean') settings.gskToolsEnabled = raw.gskToolsEnabled

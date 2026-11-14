@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { resolveNamingProvider } from '../src/main/ai-naming-provider'
 
 /**
@@ -87,5 +87,18 @@ describe('resolveNamingProvider', () => {
     } finally {
       delete process.env.GENOFFICE_NAMING_TEST_KEY
     }
+  })
+})
+
+describe('resolveNamingProvider with Genspark compiled out', () => {
+  it('never resolves Genspark, even when a key is passed', async () => {
+    vi.resetModules()
+    vi.doMock('../../../packages/ai-provider/src/genspark-gate', () => ({
+      GENSPARK_ENABLED: false,
+    }))
+    const { resolveNamingProvider: gated } = await import('../src/main/ai-naming-provider')
+    expect(gated({}, 'gsk-live-key')).toBeNull()
+    expect(gated({ provider: 'genspark' }, 'gsk-live-key')).toBeNull()
+    vi.doUnmock('../../../packages/ai-provider/src/genspark-gate')
   })
 })

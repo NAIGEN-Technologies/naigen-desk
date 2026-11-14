@@ -59,7 +59,15 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     // the engine's display-only `effective` keys stay out of saved-model toEqual
-    setupFiles: [local('../../packages/docx-engine/tests/setup-equality.ts')],
+    setupFiles: [
+      fileURLToPath(
+        new URL(
+          '../../packages/ai-provider/tests/support/genspark-enabled-setup.ts',
+          import.meta.url,
+        ),
+      ),
+      local('../../packages/docx-engine/tests/setup-equality.ts'),
+    ],
     environment: 'jsdom',
     testTimeout: 20000,
   },

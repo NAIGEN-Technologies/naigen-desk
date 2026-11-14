@@ -1,8 +1,17 @@
 import { normalizeCustomProfile } from './custom-profile'
 import { resolveCustomEndpoints } from './custom-endpoints'
+import { GENSPARK_ENABLED } from './genspark-gate'
 import { defaultAiMediaSettings, resolveAiMediaSettings } from './media'
 import { defaultAiSearchSettings, resolveAiSearchSettings } from './search-settings'
 import type { AiProviderId, AiProviderMeta, AiSettings, LegacyAiSettings } from './types'
+
+// Modified for Naigen Desk: with Genspark compiled out, the "nothing usable configured" provider is a BYOK slot with no key, so every caller reports "no API key" instead of a Genspark sign-in
+const FALLBACK_PROVIDER: AiProviderId = GENSPARK_ENABLED ? 'genspark' : 'anthropic'
+
+/** The provider id used when the stored selection is absent or unusable. */
+export function fallbackProvider(): AiProviderId {
+  return FALLBACK_PROVIDER
+}
 
 /**
  * Genspark server-side LLM proxy endpoints. All three protocols share the
@@ -583,9 +592,10 @@ export function defaultAiSettings(
     }
   }
   return {
-    provider: 'genspark',
+    // Modified for Naigen Desk: the default provider is never Genspark
+    provider: FALLBACK_PROVIDER,
     providers,
-    gskToolsEnabled: true,
+    gskToolsEnabled: GENSPARK_ENABLED,
     media: defaultAiMediaSettings(),
     search: defaultAiSearchSettings(),
   }
@@ -593,7 +603,8 @@ export function defaultAiSettings(
 
 /** false only on an explicit opt-out; absent (pre-toggle settings files) means on */
 export function cloudToolsEnabled(settings: Pick<AiSettings, 'gskToolsEnabled'>): boolean {
-  return settings.gskToolsEnabled !== false
+  // Modified for Naigen Desk: cloud tools are Genspark tools, always off here
+  return GENSPARK_ENABLED && settings.gskToolsEnabled !== false
 }
 
 /**
@@ -606,21 +617,21 @@ export function cloudToolsEnabled(settings: Pick<AiSettings, 'gskToolsEnabled'>)
  */
 export function activeProvider(settings: AiSettings): AiProviderId {
   const provider = settings.provider
-  if (provider === 'genspark') return 'genspark'
+  if (provider === 'genspark') return FALLBACK_PROVIDER
   const meta = AI_PROVIDERS.find((m) => m.id === provider)
   const config = settings.providers?.[provider]
-  if (!meta || !config) return 'genspark'
+  if (!meta || !config) return FALLBACK_PROVIDER
   if (meta.needsCliPath) return provider
   // Trim-aware: in-memory settings bypass the trimConfigs applied to
   // persisted files, and a whitespace-only key/URL/model is a 401, not a config.
-  if (!config.model?.trim()) return 'genspark'
+  if (!config.model?.trim()) return FALLBACK_PROVIDER
   if (meta.needsBaseUrl) {
     // Custom OpenAI-compatible endpoints (Ollama, LM Studio, vLLM) accept
     // anonymous requests: base URL + model suffice, the key stays optional.
-    if (!config.baseUrl?.trim()) return 'genspark'
+    if (!config.baseUrl?.trim()) return FALLBACK_PROVIDER
     return provider
   }
-  if (!config.apiKey?.trim()) return 'genspark'
+  if (!config.apiKey?.trim()) return FALLBACK_PROVIDER
   return provider
 }
 
@@ -751,7 +762,11 @@ export function resolveAiSettings(stored: unknown, defaults: AiSettings): AiSett
     return resolveCustomEndpoints(defaults)
   }
   return resolveCustomEndpoints({
-    provider: settings.provider ?? defaults.provider,
+    // Modified for Naigen Desk: a stored Genspark selection is replaced by the fallback
+    provider:
+      !GENSPARK_ENABLED && settings.provider === 'genspark'
+        ? FALLBACK_PROVIDER
+        : (settings.provider ?? defaults.provider),
     customEndpoints: settings.customEndpoints,
     customEndpoint: settings.customEndpoint,
     // Trim before migrating: a pasted " deepseek-reasoner " must still hit
@@ -759,7 +774,9 @@ export function resolveAiSettings(stored: unknown, defaults: AiSettings): AiSett
     providers: migrateRetiredModels(
       trimConfigs(mergeProviderConfigs(defaults.providers, storedProviders)),
     ),
-    gskToolsEnabled: settings.gskToolsEnabled ?? defaults.gskToolsEnabled ?? true,
+    gskToolsEnabled: GENSPARK_ENABLED
+      ? (settings.gskToolsEnabled ?? defaults.gskToolsEnabled ?? true)
+      : false,
     media: resolveAiMediaSettings(settings.media ?? defaults.media),
     search: resolveAiSearchSettings(settings.search ?? defaults.search),
     // clamped on read: a hand-edited settings file with an absurd cap must not be

@@ -26,5 +26,13 @@ export default defineConfig({
       '@genoffice/ai-provider': resolve(here, '../ai-provider/src/index.ts'),
     },
   },
-  test: { include: ['tests/**/*.test.ts'] },
+  test: {
+    // Naigen Desk: upstream tests run with the Genspark gate on
+    setupFiles: [
+      fileURLToPath(
+        new URL('../ai-provider/tests/support/genspark-enabled-setup.ts', import.meta.url),
+      ),
+    ],
+    include: ['tests/**/*.test.ts'],
+  },
 })

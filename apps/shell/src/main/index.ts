@@ -1,4 +1,5 @@
 import { execSync } from 'node:child_process'
+import { GENSPARK_ENABLED } from '@genoffice/ai-provider'
 import {
   cpSync,
   existsSync,
@@ -828,6 +829,8 @@ function recordStarPromptDocOpen(): void {
 let cachedGithubStars: number | null = null
 
 async function fetchGithubStars(): Promise<number | null> {
+  // Modified for Naigen Desk: no request to api.github.com for the upstream star count
+  if (!GENSPARK_ENABLED) return null
   if (cachedGithubStars !== null) return cachedGithubStars
   try {
     const response = await fetch('https://api.github.com/repos/genspark-ai/genoffice', {
@@ -4824,6 +4827,8 @@ function registerHomeIpc(): void {
   // kept main-side so the "open manually" rescue never opens a renderer-supplied URL
   let pendingLoginUrl = ''
   ipcMain.handle(HOME_CHANNELS.accountLogin, async (event) => {
+    // Modified for Naigen Desk: no Genspark login and no login_click analytics event
+    if (!GENSPARK_ENABLED) return false
     analytics.track('login_click')
     const sender = event.sender
     pendingLoginUrl = ''
@@ -5639,12 +5644,16 @@ function registerHomeIpc(): void {
   })
 
   ipcMain.handle(HOME_CHANNELS.openGenTeam, () => {
+    // Modified for Naigen Desk: the community link is hidden with Genspark
+    if (!GENSPARK_ENABLED) return
     shell.openExternal(GENTEAM_URL).catch(() => {
       // no browser handler available; nothing actionable for the user here
     })
   })
 
   ipcMain.handle(HOME_CHANNELS.openCreditUsage, () => {
+    // Modified for Naigen Desk: the Genspark credit page is not reachable
+    if (!GENSPARK_ENABLED) return
     shell.openExternal(CREDIT_USAGE_URL).catch(() => {
       // no browser handler available; nothing actionable for the user here
     })

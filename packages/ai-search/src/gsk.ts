@@ -25,6 +25,7 @@ import {
   type ImageSearchResult,
   type WebSearchResult,
 } from './shared'
+import { GENSPARK_ENABLED } from '@genoffice/ai-provider'
 import {
   genofficeApiKey,
   genofficeAuthPath,
@@ -92,6 +93,8 @@ function electronCompatArgs(): string[] {
  * and must not silently undo GenOffice sign-out.
  */
 export function gskApiKey(): string {
+  // Modified for Naigen Desk: no Genspark key exists in this build, not even from GSK_API_KEY
+  if (!GENSPARK_ENABLED) return ''
   const env = process.env.GSK_API_KEY
   if (env && !rejectedKeys.has(env)) return env
   const own = genofficeApiKey()
@@ -200,6 +203,8 @@ export function watchGskApiKey(onChange: (key: string) => void, intervalMs = 200
  * Set AI_SEARCH_DISABLE_GSK=1 to force-disable (test isolation / force Serper).
  */
 export function hasGskAuth(): boolean {
+  // Modified for Naigen Desk: gsk is never selected, so search and media fall back to the user's own providers
+  if (!GENSPARK_ENABLED) return false
   if (process.env.AI_SEARCH_DISABLE_GSK === '1') return false
   return !!gskApiKey() && resolveGskEntry() !== null
 }
@@ -363,6 +368,8 @@ function runGsk(
   signal?: AbortSignal,
   passive = false,
 ): Promise<unknown> {
+  // Modified for Naigen Desk: the single place that spawns the gsk CLI refuses to run
+  if (!GENSPARK_ENABLED) return Promise.reject(new Error('Genspark is not available in this build'))
   const entry = resolveGskEntry()
   if (!entry) return Promise.reject(new Error('@genspark/cli is not installed'))
   return withKeyRecovery((key) => runGskOnce(entry, key, args, timeoutMs, signal), {

@@ -1,6 +1,7 @@
 import { readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { gskApiKey, gskListPastProjects, hasGskAuth } from '@genoffice/ai-search'
+import { GENSPARK_ENABLED } from '@genoffice/ai-provider'
 import type { CloudProjectEntry, CloudProjectKind, CloudProjectsSnapshot } from '../shared/home-api'
 
 const SYNC_PAGE = 100
@@ -77,7 +78,8 @@ let syncInFlightOwner = ''
  * it starts its own run (the orphaned one aborts at its next owner check).
  */
 export function syncCloudProjects(storePath: string): Promise<CloudProjectsSnapshot> {
-  if (!hasGskAuth()) {
+  // Modified for Naigen Desk: cloud projects are a Genspark service, reported as unavailable
+  if (!GENSPARK_ENABLED || !hasGskAuth()) {
     return Promise.resolve({ available: false, projects: [], syncedAt: 0 })
   }
   const owner = cloudStoreOwner()

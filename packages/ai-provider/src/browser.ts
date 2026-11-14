@@ -1,4 +1,6 @@
 /** Browser-safe settings surface. Keep Node-backed transports out of renderer bundles. */
+// Modified for Naigen Desk: expose the Genspark build-time switch to renderer code
+export { GENSPARK_ENABLED } from './genspark-gate'
 export type {
   AiCustomCompat,
   AiCustomEndpoint,

@@ -1,5 +1,6 @@
 import { ANTHROPIC_BASE_URL } from './protocols/anthropic'
 import { GEMINI_BASE_URL } from './protocols/gemini'
+import { GENSPARK_ENABLED } from './genspark-gate'
 import { AI_PROVIDERS, DEEPSEEK_V41_FLASH, GENSPARK_LLM_BASE_URLS } from './providers'
 import {
   customProtocolBaseUrl,
@@ -145,6 +146,8 @@ export const AI_PROVIDER_ADAPTERS: Record<AiProviderId, ProviderAdapter> = {
     // input fidelity), the rest OpenAI-compatible. The proxy's gemini endpoint was
     // removed server-side (405 as of 2026-08-31) along with its gemini models.
     resolveEndpoint(config) {
+      // Modified for Naigen Desk: no Genspark proxy URL is ever produced, so no request can reach it
+      if (!GENSPARK_ENABLED) throw new Error('Genspark is not available in this build')
       if (config.model.startsWith('claude')) {
         return { protocol: 'anthropic', baseUrl: GENSPARK_LLM_BASE_URLS.anthropic }
       }

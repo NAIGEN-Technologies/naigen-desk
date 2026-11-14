@@ -106,6 +106,7 @@ import {
   type AiStreamChunk,
   type GenSparkAccountStatus,
   type LegacyAiSettings,
+  GENSPARK_ENABLED,
 } from '@genoffice/ai-provider'
 import { shutdownCodexAppServers } from '@genoffice/ai-provider/codex-app-server'
 import { decodeCsvBuffer } from '@genoffice/xlsx-gateway/gateway/csv-import'
@@ -4402,9 +4403,12 @@ export function registerSheetsAiIpc(): void {
   )
 
   // a 401 on the gsk key opens the device-code login once (genoffice-auth recovery)
-  setGenofficeLoginOpener((url) => void shell.openExternal(url))
+  // Modified for Naigen Desk: no automatic Genspark re-login after a 401 when Genspark is compiled out
+  if (GENSPARK_ENABLED) setGenofficeLoginOpener((url) => void shell.openExternal(url))
 
   ipcMain.handle(IPC_CHANNELS.aiGskLogin, () => {
+    // Modified for Naigen Desk: the login button does nothing when Genspark is compiled out
+    if (!GENSPARK_ENABLED) return
     ensureGenofficeLogin((url) => void shell.openExternal(url))
   })
 

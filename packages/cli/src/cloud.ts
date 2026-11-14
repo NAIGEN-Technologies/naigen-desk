@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { GENSPARK_ENABLED } from '@genoffice/ai-provider'
 import { setGskProxyUrl } from '@genoffice/ai-search'
 import { genofficeUserDataDir } from './gui'
 import { packagedResourcesDir } from './resources'
@@ -42,7 +43,8 @@ export async function prepareCloud(env: NodeJS.ProcessEnv): Promise<void> {
     setGlobalDispatcher(new ProxyAgent(proxy))
   }
   const packaged = packagedResourcesDir()
-  if (packaged && !env.GSK_CLI_PATH) {
+  // Modified for Naigen Desk: the bundled Genspark CLI is never wired in
+  if (GENSPARK_ENABLED && packaged && !env.GSK_CLI_PATH) {
     const entry = join(packaged, 'gsk', 'node_modules', '@genspark', 'cli', 'dist', 'index.js')
     if (existsSync(entry)) process.env.GSK_CLI_PATH = entry
   }
