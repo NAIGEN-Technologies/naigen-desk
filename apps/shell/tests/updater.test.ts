@@ -382,10 +382,10 @@ describe('initAutoUpdater', () => {
     expect(updaterState.allowDowngrade).toBe(false)
   })
 
-  it('starts on the beta feed when the beta channel is passed in', async () => {
+  it('stays on the stable feed when the beta channel is passed in', async () => {
     const { initAutoUpdater } = await loadUpdater()
     initAutoUpdater(() => null, 'beta')
-    expect(updaterState.channel).toBe('beta')
+    expect(updaterState.channel).toBe('latest')
     // must never allow a downgrade, despite electron-updater's channel setter
     // side effect
     expect(updaterState.allowDowngrade).toBe(false)
@@ -396,7 +396,7 @@ describe('initAutoUpdater', () => {
     initAutoUpdater(() => null)
     expect(checkForUpdates).not.toHaveBeenCalled()
     applyUpdateChannel('beta')
-    expect(updaterState.channel).toBe('beta')
+    expect(updaterState.channel).toBe('latest')
     expect(updaterState.allowDowngrade).toBe(false)
     expect(checkForUpdates).toHaveBeenCalledTimes(1)
     applyUpdateChannel('stable')
