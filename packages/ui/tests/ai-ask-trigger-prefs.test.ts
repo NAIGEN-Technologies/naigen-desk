@@ -46,7 +46,8 @@ describe('showAiAskTrigger in the renderer', () => {
   it('reaches the hook when shell prefs are applied', () => {
     act(() => applyAiPanelPrefs({ showAiAskTrigger: false }))
     expect(flag('show-trigger')).toBe('false')
-    expect(flag('show-sidebar')).toBe('true')
+    // Modified for Naigen Desk: AI panel hidden by default.
+    expect(flag('show-sidebar')).toBe('false')
   })
 
   it('can be turned back on without a reload', () => {
