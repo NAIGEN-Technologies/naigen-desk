@@ -205,14 +205,12 @@ export function scan({ root, brand = loadBrand() }) {
     const lowerUrls = [...sc.forbiddenUrls, brand.shell.homepageFrom].map((u) => u.toLowerCase())
     for (const field of sc.shellMetaFields ?? []) {
       const value = pkg[field]
-      let found = null
-      if (typeof value !== 'string') found = `${field} is not a string`
-      else {
-        found =
-          sc.forbiddenWords.find((w) => value.includes(w)) ??
-          lowerUrls.find((u) => value.toLowerCase().includes(u)) ??
-          null
-      }
+      const found =
+        typeof value !== 'string'
+          ? `${field} is not a string`
+          : (sc.forbiddenWords.find((w) => value.includes(w)) ??
+            lowerUrls.find((u) => value.toLowerCase().includes(u)) ??
+            null)
       if (found) {
         hits.push({
           check: 'shell-meta',
