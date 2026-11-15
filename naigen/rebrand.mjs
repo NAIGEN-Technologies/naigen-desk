@@ -22,6 +22,7 @@ const IMG_LINE_RE = /^\s*!\[[^\]]*\]\(img\/[^)]*\)\s*$/
 const IMG_INLINE_RE = /!\[[^\]]*\]\(img\/[^)]*\)/g
 const PUBLISH_MARKER = 'naigen-desk:publish'
 const LICENSES_MARKER = 'naigen-desk:licenses'
+const INSTALLER_MARKER = 'naigen-desk:installer'
 
 class Report {
   constructor() {
@@ -214,6 +215,40 @@ export function injectLicenseResources(text) {
   return { text: text.slice(0, end) + block + text.slice(end), count: 2 }
 }
 
+/**
+ * Sets a top-level string field of a package.json text. Exactly one line must
+ * hold the field and its value must be a plain string, so that a changed
+ * upstream layout fails the build instead of leaving the old value behind.
+ */
+export function setJsonString(text, key, value, where = 'package.json') {
+  const re = new RegExp(`^( {2}"${key}":[ \\t]*)("(?:[^"\\\\]|\\\\.)*")(,?)[ \\t]*$`, 'gm')
+  const loose = new RegExp(`^ {2}"${key}":`, 'gm')
+  if (countMatches(text, loose) !== 1) throw new Error(`${where}: expected exactly one "${key}"`)
+  if (countMatches(text, re) !== 1) throw new Error(`${where}: "${key}" is not a plain string`)
+  return text.replace(re, (_m, head, _old, comma) => `${head}${JSON.stringify(value)}${comma}`)
+}
+
+/**
+ * Installer metadata: the copyright line (Windows file properties) and a
+ * space-free NSIS file name, so the built file is the one latest.yml names.
+ * `${version}` and `${ext}` stay literal; electron-builder expands them.
+ */
+export function injectInstallerMeta(text, brand, year = new Date().getUTCFullYear()) {
+  if (text.includes(INSTALLER_MARKER)) return { text, count: 0 }
+  if (!/^\s*nsis:\s*\{/m.test(text)) throw new Error('electron-builder.cjs: nsis block not found')
+  const copyright = brand.copyright.replace('{year}', String(year))
+  const block = [
+    `// ${INSTALLER_MARKER} (added by naigen/rebrand.mjs): publisher line and installer file name`,
+    `config.copyright = ${JSON.stringify(copyright)}`,
+    `config.nsis = { ...config.nsis, artifactName: '${brand.installerArtifactName}' }`,
+    '',
+  ].join('\n')
+  const anchor = /^module\.exports = config\s*$/m
+  if (!anchor.test(text))
+    throw new Error('electron-builder.cjs: "module.exports = config" not found')
+  return { text: text.replace(anchor, () => `${block}module.exports = config`), count: 2 }
+}
+
 export function rebrand({ root, version, brand = loadBrand(), dryRun = false }) {
   const report = new Report()
   const all = walkFiles(root)
@@ -288,7 +323,9 @@ export function rebrand({ root, version, brand = loadBrand(), dryRun = false }) 
         out = out.replace(ver, `$1"${version}"`)
       }
       out = out.split(brand.shell.homepageFrom).join(brand.repoUrl)
-      return { text: out, count: 3 }
+      out = setJsonString(out, 'author', brand.publisher, pkg)
+      out = setJsonString(out, 'description', brand.description, pkg)
+      return { text: out, count: 5 }
     },
     'package.json',
   )
@@ -329,6 +366,7 @@ export function rebrand({ root, version, brand = loadBrand(), dryRun = false }) 
   edit(builder, (t) => removeGskPackaging(t), 'gsk-removed')
   edit(builder, (t) => injectPublish(t, brand), 'publish-config')
   edit(builder, (t) => injectLicenseResources(t), 'license-resources')
+  edit(builder, (t) => injectInstallerMeta(t, brand), 'installer-meta')
 
   // 7. help pages keep text only
   const topics = all.filter(

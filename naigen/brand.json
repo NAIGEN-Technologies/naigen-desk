@@ -2,6 +2,10 @@
   "displayName": "Naigen Desk",
   "appId": "io.github.naigen-technologies.desk",
   "upstreamName": "GenOffice",
+  "publisher": "Naigen",
+  "description": "Naigen Desk: documents, spreadsheets, presentations and PDF",
+  "copyright": "Copyright © {year} Naigen. Based on GenOffice (Apache-2.0).",
+  "installerArtifactName": "Naigen-Desk-Setup-${version}.${ext}",
   "release": {
     "owner": "NAIGEN-Technologies",
     "repo": "naigen-desk",
@@ -186,7 +190,8 @@
     "logoGlobs": ["apps/*/src/renderer/**/*.tsx", "apps/*/src/renderer/**/*.svg"],
     "packagingFile": "apps/shell/electron-builder.cjs",
     "packagingForbidden": ["@genspark/cli"],
-    "packagingRequired": ["from: '../../LICENSE'", "from: '../../NOTICE'"],
+    "packagingRequired": ["from: '../../LICENSE'", "from: '../../NOTICE'", "naigen-desk:installer"],
+    "shellMetaFields": ["productName", "author", "description", "homepage"],
     "allowlist": {
       "lineSubstrings": [
         "Naigen Desk is based on GenOffice",

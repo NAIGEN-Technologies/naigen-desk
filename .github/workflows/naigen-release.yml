@@ -125,16 +125,22 @@ jobs:
           Get-ChildItem -Path $rel -File | ForEach-Object { '{0,14:N0}  {1}' -f $_.Length, $_.Name }
           Get-ChildItem -Path (Join-Path $unpacked 'resources') | ForEach-Object { '  resources/' + $_.Name }
           $failures = @()
-          $installer = Join-Path $rel "Naigen Desk Setup $env:VERSION.exe"
-          foreach ($f in @($installer, "$installer.blockmap", (Join-Path $rel 'latest.yml'))) {
+          $latest = Join-Path $rel 'latest.yml'
+          $installerName = "Naigen-Desk-Setup-$env:VERSION.exe"
+          $installer = Join-Path $rel $installerName
+          foreach ($f in @($installer, "$installer.blockmap", $latest)) {
             if (-not (Test-Path -LiteralPath $f)) { $failures += "missing output file: $f" }
           }
-          $latest = Join-Path $rel 'latest.yml'
           if (Test-Path -LiteralPath $latest) {
             Get-Content -LiteralPath $latest
             if (-not (Select-String -LiteralPath $latest -Pattern "^version: '?$([regex]::Escape($env:VERSION))'?\s*$" -Quiet)) {
               $failures += "latest.yml version is not $env:VERSION"
             }
+            $pathLine = Select-String -LiteralPath $latest -Pattern '^path:\s*(.+?)\s*$' | Select-Object -First 1
+            $latestPath = if ($pathLine) { $pathLine.Matches[0].Groups[1].Value.Trim([char]39, [char]34) } else { '' }
+            if ($latestPath -ne $installerName) { $failures += "latest.yml path is '$latestPath', expected '$installerName'" }
+            elseif (-not (Test-Path -LiteralPath (Join-Path $rel $latestPath))) { $failures += "no file named like latest.yml path: $latestPath" }
+            elseif (-not (Test-Path -LiteralPath (Join-Path $rel "$latestPath.blockmap"))) { $failures += "no blockmap for latest.yml path: $latestPath" }
           }
           $appUpdate = Join-Path $unpacked 'resources/app-update.yml'
           if (Test-Path -LiteralPath $appUpdate) {
@@ -148,6 +154,20 @@ jobs:
           }
           if (Test-Path -LiteralPath (Join-Path $unpacked 'resources/gsk')) { $failures += 'resources/gsk must not be packaged' }
           if (-not (Test-Path -LiteralPath (Join-Path $unpacked 'Naigen Desk.exe'))) { $failures += 'missing win-unpacked/Naigen Desk.exe' }
+          # Windows file properties: shown in Explorer, in Settings > Apps (publisher) and by SmartScreen.
+          $fields = @('CompanyName', 'ProductName', 'FileDescription', 'InternalName', 'OriginalFilename', 'LegalCopyright', 'FileVersion', 'ProductVersion')
+          foreach ($target in @((Join-Path $unpacked 'Naigen Desk.exe'), $installer)) {
+            if (-not (Test-Path -LiteralPath $target)) { continue }
+            $vi = (Get-Item -LiteralPath $target).VersionInfo
+            Write-Host "VersionInfo of $target"
+            foreach ($f in $fields) { Write-Host ('  {0,-16} = {1}' -f $f, $vi.$f) }
+            if ($vi.CompanyName -ne 'Naigen') { $failures += "$target CompanyName is '$($vi.CompanyName)', expected 'Naigen'" }
+            if ($vi.ProductName -ne 'Naigen Desk') { $failures += "$target ProductName is '$($vi.ProductName)', expected 'Naigen Desk'" }
+            foreach ($f in @('CompanyName', 'ProductName', 'FileDescription', 'InternalName')) {
+              if ($vi.$f -match 'GenOffice|Genspark') { $failures += "$target $f still names upstream: '$($vi.$f)'" }
+            }
+            if ($vi.LegalCopyright -notmatch 'Naigen') { $failures += "$target LegalCopyright does not contain Naigen: '$($vi.LegalCopyright)'" }
+          }
           if ($failures.Count -gt 0) {
             $failures | ForEach-Object { Write-Host "::error::$_" }
             exit 1
@@ -197,8 +217,8 @@ jobs:
         with:
           name: naigen-desk-installer
           path: |
-            apps/shell/release/Naigen Desk Setup ${{ needs.gate.outputs.version }}.exe
-            apps/shell/release/Naigen Desk Setup ${{ needs.gate.outputs.version }}.exe.blockmap
+            apps/shell/release/Naigen-Desk-Setup-${{ needs.gate.outputs.version }}.exe
+            apps/shell/release/Naigen-Desk-Setup-${{ needs.gate.outputs.version }}.exe.blockmap
             apps/shell/release/latest.yml
           if-no-files-found: error
           retention-days: 3
@@ -244,16 +264,19 @@ jobs:
 
       - name: Create pre-release
         run: |
-          # latest.yml names the installer with hyphens, while GitHub turns spaces
-          # in an uploaded file name into dots. Upload under the name latest.yml
-          # uses, or the updater would request a file that does not exist.
-          EXE_NAME=$(sed -n 's/^path: //p' dist/latest.yml | tr -d '\r')
+          # The built file name equals the path entry of latest.yml, so the
+          # updater finds the asset under that name.
+          EXE_NAME=$(sed -n 's/^path: //p' dist/latest.yml | tr -d '\r' | tr -d "'\"")
           if [ -z "$EXE_NAME" ]; then
             echo "::error::latest.yml has no path entry"
             exit 1
           fi
-          mv "dist/Naigen Desk Setup $VERSION.exe" "dist/$EXE_NAME"
-          mv "dist/Naigen Desk Setup $VERSION.exe.blockmap" "dist/$EXE_NAME.blockmap"
+          for f in "dist/$EXE_NAME" "dist/$EXE_NAME.blockmap"; do
+            if [ ! -f "$f" ]; then
+              echo "::error::latest.yml names $EXE_NAME but $f is missing"
+              exit 1
+            fi
+          done
           ls -l dist
           gh release create "v$VERSION" \
             --repo "${{ github.repository }}" \

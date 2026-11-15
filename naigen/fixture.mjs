@@ -76,6 +76,10 @@ const config = {
       to: 'gsk/node_modules/ws',
     },
   ],
+  nsis: {
+    oneClick: false,
+    allowToChangeInstallationDirectory: true,
+  },
 }
 if (updateUrl) {
   config.publish = [{ provider: 'generic', url: updateUrl }]
@@ -98,7 +102,7 @@ export function fixtureFiles() {
     'apps/pdf/src/renderer/ai/pdf-skill.ts':
       "const P = `You are GenOffice's PDF assistant, run genoffice open`\n",
     'apps/shell/package.json':
-      '{\n  "name": "@genoffice/shell",\n  "productName": "GenOffice",\n  "version": "0.13.0",\n  "homepage": "https://github.com/genspark-ai/genoffice"\n}\n',
+      '{\n  "name": "@genoffice/shell",\n  "productName": "GenOffice",\n  "version": "0.13.0",\n  "homepage": "https://github.com/genspark-ai/genoffice",\n  "description": "Unified GenOffice shell: one app hosting the docs and sheets modules",\n  "author": "GenOffice"\n}\n',
     'apps/shell/electron-builder.cjs': BUILDER,
     'apps/shell/build/icon.ico': 'upstream-ico',
     'apps/shell/build/icon.png': 'upstream-png',

@@ -1,16 +1,18 @@
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { loadBrand } from './brand-lib.mjs'
 import { fixtureBrand, makeFixture } from './fixture.mjs'
 import {
+  injectInstallerMeta,
   injectLicenseResources,
   injectPublish,
   rebrand,
   removeGskPackaging,
   rewriteJsxLabels,
   rewriteText,
+  setJsonString,
   stripHelpImages,
 } from './rebrand.mjs'
 
@@ -248,5 +250,68 @@ test('a missing expected file or line fails loudly', () => {
   const root = makeFixture()
   rmSync(join(root, 'packages/cli/bin/genoffice.cmd'))
   assert.throws(() => rebrand({ root, brand: fixtureBrand() }), /genoffice\.cmd/)
+  rmSync(root, { recursive: true, force: true })
+})
+
+test('package.json publisher and description are replaced exactly once', () => {
+  const src =
+    '{\n  "name": "x",\n  "description": "Unified GenOffice shell",\n  "author": "GenOffice"\n}\n'
+  const a = setJsonString(src, 'author', brand.publisher)
+  assert.match(a, /"author": "Naigen"\n/)
+  const d = setJsonString(a, 'description', brand.description)
+  assert.match(d, /"description": "Naigen Desk: documents, spreadsheets, presentations and PDF",/)
+  assert.equal(setJsonString(d, 'author', brand.publisher), d)
+  // a trailing comma on the last field is kept
+  assert.match(setJsonString('{\n  "author": "G",\n  "b": 1\n}', 'author', 'N'), /"author": "N",/)
+})
+
+test('a missing, duplicated or non-string package.json field throws', () => {
+  assert.throws(() => setJsonString('{\n  "name": "x"\n}', 'author', 'N'), /exactly one "author"/)
+  assert.throws(
+    () => setJsonString('{\n  "author": "a",\n  "author": "b"\n}', 'author', 'N'),
+    /exactly one "author"/,
+  )
+  assert.throws(
+    () => setJsonString('{\n  "author": { "name": "a" }\n}', 'author', 'N'),
+    /not a plain string/,
+  )
+  assert.throws(() => setJsonString('{\n  "author": null\n}', 'author', 'N'), /not a plain string/)
+})
+
+test('installer metadata sets the copyright and a space-free file name, once', () => {
+  const src = readFileSync(join(makeFixture(), 'apps/shell/electron-builder.cjs'), 'utf8')
+  const once = injectInstallerMeta(src, brand, 2031).text
+  assert.match(
+    once,
+    /config\.copyright = "Copyright © 2031 Naigen\. Based on GenOffice \(Apache-2\.0\)\."/,
+  )
+  assert.ok(
+    once.includes(
+      "config.nsis = { ...config.nsis, artifactName: 'Naigen-Desk-Setup-${version}.${ext}' }",
+    ),
+  )
+  assert.ok(once.indexOf('naigen-desk:installer') < once.indexOf('module.exports'))
+  assert.equal(injectInstallerMeta(once, brand, 2040).text, once)
+  assert.throws(() => injectInstallerMeta('module.exports = config\n', brand), /nsis block/)
+  assert.throws(() => injectInstallerMeta('nsis: {\n}\n', brand), /module\.exports/)
+})
+
+test('a fixture run sets publisher, description and installer metadata', () => {
+  const root = makeFixture()
+  rebrand({ root, version: '1.0.0', brand: fixtureBrand() })
+  const pkg = JSON.parse(readFileSync(join(root, 'apps/shell/package.json'), 'utf8'))
+  assert.equal(pkg.author, 'Naigen')
+  assert.equal(pkg.description, brand.description)
+  const builder = readFileSync(join(root, 'apps/shell/electron-builder.cjs'), 'utf8')
+  assert.match(builder, /artifactName: 'Naigen-Desk-Setup-\$\{version\}\.\$\{ext\}'/)
+  assert.match(builder, /config\.copyright = "Copyright © \d{4} Naigen\./)
+  rmSync(root, { recursive: true, force: true })
+})
+
+test('a package.json without an author fails the run', () => {
+  const root = makeFixture()
+  const file = join(root, 'apps/shell/package.json')
+  writeFileSync(file, readFileSync(file, 'utf8').replace(/,\n {2}"author": "GenOffice"/, ''))
+  assert.throws(() => rebrand({ root, brand: fixtureBrand() }), /exactly one "author"/)
   rmSync(root, { recursive: true, force: true })
 })

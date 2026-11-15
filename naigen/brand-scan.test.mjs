@@ -21,6 +21,7 @@ test('an untransformed tree is reported by every check', () => {
     'upstream-url',
     'help-image',
     'packaging',
+    'shell-meta',
   ])
     assert.ok(found.has(c), `missing ${c}`)
   rmSync(root, { recursive: true, force: true })
@@ -97,5 +98,50 @@ test('the allowlist keeps an attribution line out of the report', () => {
   assert.deepEqual(scan({ root, brand }), [])
   writeFileSync(join(root, 'apps/docs/src/renderer/index.html'), '<title>GenOffice</title>\n')
   assert.ok(scan({ root, brand }).some((h) => h.check === 'upstream-name'))
+  rmSync(root, { recursive: true, force: true })
+})
+
+test('the shell package.json metadata is scanned', () => {
+  const root = makeFixture()
+  const brand = fixtureBrand()
+  rebrand({ root, version: '1.0.0', brand })
+  const file = join(root, 'apps/shell/package.json')
+  const good = readFileSync(file, 'utf8')
+  for (const [field, bad] of [
+    ['productName', 'GenOffice'],
+    ['author', 'GenOffice'],
+    ['description', 'Unified Genspark shell'],
+    ['homepage', 'https://github.com/genspark-ai/genoffice'],
+    ['homepage', 'https://genoffice.ai/'],
+  ]) {
+    const pkg = JSON.parse(good)
+    pkg[field] = bad
+    writeFileSync(file, JSON.stringify(pkg, null, 2))
+    const hits = scan({ root, brand })
+    assert.deepEqual(
+      hits.map((h) => h.check),
+      ['shell-meta'],
+      `${field}=${bad}`,
+    )
+    assert.match(hits[0].text, new RegExp(`^${field}:`))
+  }
+  const pkg = JSON.parse(good)
+  delete pkg.author
+  writeFileSync(file, JSON.stringify(pkg, null, 2))
+  assert.ok(scan({ root, brand }).some((h) => h.check === 'shell-meta'))
+  writeFileSync(file, good)
+  assert.deepEqual(scan({ root, brand }), [])
+  rmSync(root, { recursive: true, force: true })
+})
+
+test('the installer metadata block is required in the packaging config', () => {
+  const root = makeFixture()
+  const brand = fixtureBrand()
+  rebrand({ root, version: '1.0.0', brand })
+  const file = join(root, 'apps/shell/electron-builder.cjs')
+  const text = readFileSync(file, 'utf8')
+  writeFileSync(file, text.split('naigen-desk:installer').join('removed'))
+  const hits = scan({ root, brand })
+  assert.ok(hits.some((h) => h.check === 'packaging' && h.found === 'naigen-desk:installer'))
   rmSync(root, { recursive: true, force: true })
 })
