@@ -201,11 +201,11 @@ test('full run on a fixture tree: expected edits, then no further change', () =>
   assert.match(builder, /to: 'NOTICE'/)
 
   assert.equal(
-    read('packages/cli/bin/genoffice.cmd'),
-    '@echo off\n"%~dp0..\\..\\Naigen Desk.exe" "%~dp0genoffice.cjs" %*\n',
+    read('packages/cli/bin/naigen-desk.cmd'),
+    '@echo off\n"%~dp0..\\..\\Naigen Desk.exe" "%~dp0naigen-desk.cjs" %*\n',
   )
   assert.match(
-    read('packages/cli/bin/genoffice'),
+    read('packages/cli/bin/naigen-desk'),
     /if \[ -x "\$here\/\.\.\/\.\.\/Naigen Desk\.exe" \]; then app="\$here\/\.\.\/\.\.\/Naigen Desk\.exe"/,
   )
   assert.match(read('packages/cli/src/mcp-launch.ts'), /\.\.\\\\Naigen Desk\.exe`/)

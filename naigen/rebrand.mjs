@@ -5,11 +5,12 @@
 // a second run changes nothing.
 //
 // Usage: node naigen/rebrand.mjs --version 1.0.0 [--root <dir>] [--dry-run]
-import { copyFileSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import {
   GENSPARK_RE,
+  buildCliTokenRe,
   buildStandaloneRe,
   gensparkLabel,
   loadBrand,
@@ -249,11 +250,61 @@ export function injectInstallerMeta(text, brand, year = new Date().getUTCFullYea
   return { text: text.replace(anchor, () => `${block}module.exports = config`), count: 2 }
 }
 
+/**
+ * Command token rewrite for the CLI, skill and MCP server: `genoffice` becomes
+ * `naigen-desk` wherever the user or an agent types or reads it. Lines holding a
+ * keep substring (a check against the upstream repository's own package name)
+ * are left alone. The standalone product name is rewritten in the same files.
+ */
+export function rewriteCliTokens(text, file, brand) {
+  const re = buildCliTokenRe()
+  const keep = brand.cli.keepLineSubstrings
+  let tokens = 0
+  const lines = text.split('\n').map((line) => {
+    if (keep.some((k) => line.includes(k))) return line
+    return line.replace(re, () => {
+      tokens++
+      return brand.cli.command
+    })
+  })
+  const named = rewriteText(lines.join('\n'), file, brand, 'names')
+  return { text: named.text, tokens, names: named.counts.names }
+}
+
+/** Moves a file or directory to its new name; a second run finds it already moved. */
+function renameExpected(root, { from, to }, dryRun) {
+  const src = join(root, from)
+  const dst = join(root, to)
+  if (existsSync(src)) {
+    if (existsSync(dst)) throw new Error(`${from}: ${to} already exists`)
+    if (!dryRun) renameSync(src, dst)
+    return true
+  }
+  if (!existsSync(dst)) throw new Error(`${from}: expected path is missing`)
+  return false
+}
+
 export function rebrand({ root, version, brand = loadBrand(), dryRun = false }) {
   const report = new Report()
   const all = walkFiles(root)
+  // A dry run does not move files, so a renamed path is read from where the file still is.
+  const original = (rel) => {
+    if (!dryRun) return rel
+    for (const { from, to } of brand.cli.renames) {
+      if (rel === to) return from
+      if (rel.startsWith(`${to}/`)) return from + rel.slice(to.length)
+    }
+    return rel
+  }
+  const moved = (rel) => {
+    for (const { from, to } of brand.cli.renames) {
+      if (rel === from) return to
+      if (rel.startsWith(`${from}/`)) return to + rel.slice(from.length)
+    }
+    return rel
+  }
   const edit = (rel, fn, rule) => {
-    const full = join(root, rel)
+    const full = join(root, original(rel))
     if (!existsSync(full)) throw new Error(`${rel}: expected file is missing`)
     const before = readFileSync(full, 'utf8')
     const { text, count } = fn(before, rel)
@@ -345,6 +396,11 @@ export function rebrand({ root, version, brand = loadBrand(), dryRun = false }) 
     },
     'appId+productName',
   )
+  // The CLI launchers and the skill folder get their new names first; the exe
+  // rewrites below and the packaging config refer to the new paths.
+  for (const r of brand.cli.renames) {
+    if (renameExpected(root, r, dryRun)) report.add(r.to, 'renamed')
+  }
   for (const { file, replacements } of brand.exeRewrites) {
     edit(
       file,
@@ -359,6 +415,40 @@ export function rebrand({ root, version, brand = loadBrand(), dryRun = false }) 
         return { text: out, count: n }
       },
       'exe-name',
+    )
+  }
+
+  // 4b. CLI, skill and MCP server: explicit replacements, then the command token
+  for (const { file, replacements } of brand.cli.replacements) {
+    edit(
+      file,
+      (t) => {
+        let out = t
+        let n = 0
+        for (const { from, to } of replacements) {
+          const r = replaceExpected(out, from, to, file)
+          out = r.text
+          n += r.count
+        }
+        return { text: out, count: n }
+      },
+      'cli-name',
+    )
+  }
+  const afterRename = dryRun ? all.map(moved) : walkFiles(root)
+  const cliFiles = matchGlobs(afterRename, brand.cli.files)
+  if (cliFiles.empty.length)
+    throw new Error(`cli.files: no file matches ${cliFiles.empty.join(', ')}`)
+  for (const rel of cliFiles.files) {
+    edit(
+      rel,
+      (t, f) => {
+        const r = rewriteCliTokens(t, f, brand)
+        report.add(rel, 'cli-tokens', r.tokens)
+        report.add(rel, 'names', r.names)
+        return { text: r.text, count: 0 }
+      },
+      'edited',
     )
   }
 

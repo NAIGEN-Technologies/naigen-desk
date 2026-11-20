@@ -153,6 +153,13 @@ jobs:
             if (-not (Test-Path -LiteralPath (Join-Path $unpacked "resources/$n"))) { $failures += "missing resources/$n" }
           }
           if (Test-Path -LiteralPath (Join-Path $unpacked 'resources/gsk')) { $failures += 'resources/gsk must not be packaged' }
+          $cliDir = Join-Path $unpacked 'resources/cli'
+          foreach ($n in @('naigen-desk.cmd', 'naigen-desk', 'naigen-desk.cjs', 'skills/naigen-desk/SKILL.md')) {
+            if (-not (Test-Path -LiteralPath (Join-Path $cliDir $n))) { $failures += "missing resources/cli/$n" }
+          }
+          foreach ($n in @('genoffice.cmd', 'genoffice', 'genoffice.cjs', 'skills/genoffice')) {
+            if (Test-Path -LiteralPath (Join-Path $cliDir $n)) { $failures += "resources/cli/$n must not be packaged" }
+          }
           if (-not (Test-Path -LiteralPath (Join-Path $unpacked 'Naigen Desk.exe'))) { $failures += 'missing win-unpacked/Naigen Desk.exe' }
           # Windows file properties: shown in Explorer, in Settings > Apps (publisher) and by SmartScreen.
           $fields = @('CompanyName', 'ProductName', 'FileDescription', 'InternalName', 'OriginalFilename', 'LegalCopyright', 'FileVersion', 'ProductVersion')
@@ -180,10 +187,26 @@ jobs:
         shell: pwsh
         timeout-minutes: 15
         run: |
-          $cli = (Resolve-Path 'apps/shell/release/win-unpacked/resources/cli/genoffice.cmd').Path
+          $cli = (Resolve-Path 'apps/shell/release/win-unpacked/resources/cli/naigen-desk.cmd').Path
           if (-not (Select-String -LiteralPath $cli -Pattern 'Naigen Desk.exe' -SimpleMatch -Quiet)) {
             Write-Host '::error::CLI launcher does not reference Naigen Desk.exe'
             exit 1
+          }
+          # The version the command line reports is the one the app ships, under the new name.
+          $ver = (& $cli --version 2>&1 | Out-String).Trim()
+          Write-Host "> naigen-desk --version: $ver"
+          if ($LASTEXITCODE -ne 0 -or $ver -notmatch "^naigen-desk $([regex]::Escape($env:VERSION))\s*$") {
+            Write-Host "::error::naigen-desk --version printed '$ver', expected 'naigen-desk $env:VERSION'"
+            exit 1
+          }
+          # Help and usage text must name the new command and no longer teach the old one.
+          foreach ($h in @(@('help'), @('help', 'convert'))) {
+            $text = & $cli @h 2>&1 | Out-String
+            Write-Host "> naigen-desk $($h -join ' '): $($text.Length) characters"
+            if ($LASTEXITCODE -ne 0) { Write-Host "::error::naigen-desk $($h -join ' ') exited with code $LASTEXITCODE"; exit 1 }
+            if ($text -cnotmatch 'naigen-desk') { Write-Host "::error::help output does not contain naigen-desk"; exit 1 }
+            $old = [regex]::Matches($text, '(?<![@.\w/-])genoffice\s+[a-z<\[-]')
+            if ($old.Count -gt 0) { Write-Host "::error::help output still teaches 'genoffice <cmd>': $($old[0].Value)"; exit 1 }
           }
           $dir = Join-Path $env:RUNNER_TEMP 'smoke'
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
@@ -196,7 +219,7 @@ jobs:
             @('convert', (Join-Path $dir 'sample.pptx'), '--to', 'pdf', '--out', (Join-Path $dir 'pptx.pdf'))
           )
           foreach ($s in $steps) {
-            Write-Host "> genoffice $($s -join ' ')"
+            Write-Host "> naigen-desk $($s -join ' ')"
             & $cli @s
             if ($LASTEXITCODE -ne 0) {
               Write-Host "::error::CLI exited with code $LASTEXITCODE for: $($s -join ' ')"

@@ -64,6 +64,18 @@ const config = {
       to: 'cli/genoffice.cjs',
     },
     {
+      from: '../../packages/cli/bin/genoffice',
+      to: 'cli/genoffice',
+    },
+    {
+      from: '../../packages/cli/bin/genoffice.cmd',
+      to: 'cli/genoffice.cmd',
+    },
+    {
+      from: '../../skills/genoffice/SKILL.md',
+      to: 'cli/skills/genoffice/SKILL.md',
+    },
+    {
       from: '../../node_modules/@genspark/cli',
       to: 'gsk/node_modules/@genspark/cli',
     },
@@ -115,7 +127,28 @@ export function fixtureFiles() {
     'packages/cli/src/mcp-launch.ts':
       'command: `${dir}\\\\..\\\\..\\\\GenOffice.exe`,\nif (exists(`${dir}${sep}..${sep}..${sep}GenOffice.exe`))\n',
     'packages/cli/src/resources.ts':
-      "join(env.LOCALAPPDATA, 'Programs', 'GenOffice', 'GenOffice.exe')\nenv.ProgramFiles ? join(env.ProgramFiles, 'GenOffice', 'GenOffice.exe') : ''\njoin(install, 'GenOffice.exe')\n",
+      "join(env.LOCALAPPDATA, 'Programs', 'GenOffice', 'GenOffice.exe')\nenv.ProgramFiles ? join(env.ProgramFiles, 'GenOffice', 'GenOffice.exe') : ''\njoin(install, 'GenOffice.exe')\nif (JSON.parse(readFileSync(pkg, 'utf-8')).name === 'genoffice') return dir\nreturn join(install, 'genoffice')\n",
+    'packages/cli/src/gui.ts': "return join(base, 'GenOffice')\n",
+    'packages/cli/src/agent-mcp.ts': [
+      "export const MCP_SERVER_NAME = 'genoffice'",
+      "const LAUNCHER_NAMES = new Set(['genoffice', 'genoffice.cmd', 'genoffice.exe'])",
+      'const TOML = /mcp_servers[.](?:"genoffice"|genoffice)/',
+      "const mine = id === 'mcp-genoffice' || a.some((x) => x === 'genoffice.cjs')",
+      '',
+    ].join('\n'),
+    'packages/cli/src/mcp/server.ts': [
+      "{ uri: 'genoffice://guide/docs', name: 'GenOffice guide' }",
+      "new Server({ name: 'genoffice', version: VERSION })",
+      'const dir = join(tmpdir(), `genoffice-mcp-${pid}`) // genoffice#1879',
+      "const imp = '@genoffice/docx-engine' + process.env.GENOFFICE_APP_BIN + '~/.genoffice/launcher'",
+      "const up = 'https://github.com/genspark-ai/genoffice'",
+      "log('genoffice: failed')",
+      '',
+    ].join('\n'),
+    'apps/shell/src/main/integrations-ipc.ts':
+      "const l = join(dir, win ? 'genoffice.cmd' : 'genoffice')\nconst z = `genoffice-skill-${v}.zip`\n",
+    'skills/genoffice/SKILL.md':
+      '---\nname: genoffice\n---\n# GenOffice\nRun `genoffice convert a.docx`; the launcher path is in `~/.genoffice/launcher`.\n',
   }
 }
 
@@ -132,6 +165,16 @@ export function fixtureBrand() {
     titleFiles: ['apps/*/src/renderer/index.html'],
     promptFiles: ['apps/*/src/renderer/ai/**/*.ts'],
     jsxLabelFiles: ['apps/docs/src/renderer/components/Ribbon.tsx'],
+    cli: {
+      ...brand.cli,
+      files: [
+        'packages/cli/bin/naigen-desk',
+        'packages/cli/bin/naigen-desk.cmd',
+        'packages/cli/src/**/*.ts',
+        'skills/naigen-desk/SKILL.md',
+        'apps/shell/src/main/integrations-ipc.ts',
+      ],
+    },
   }
 }
 

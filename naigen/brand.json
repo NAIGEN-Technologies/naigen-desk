@@ -139,16 +139,20 @@
   },
   "exeRewrites": [
     {
-      "file": "packages/cli/bin/genoffice.cmd",
+      "file": "packages/cli/bin/naigen-desk.cmd",
       "replacements": [{ "from": "GenOffice.exe", "to": "Naigen Desk.exe" }]
     },
     {
-      "file": "packages/cli/bin/genoffice",
+      "file": "packages/cli/bin/naigen-desk",
       "replacements": [{ "from": "GenOffice.exe", "to": "Naigen Desk.exe" }]
     },
     {
       "file": "packages/cli/src/mcp-launch.ts",
       "replacements": [{ "from": "GenOffice.exe", "to": "Naigen Desk.exe" }]
+    },
+    {
+      "file": "packages/cli/src/gui.ts",
+      "replacements": [{ "from": "join(base, 'GenOffice')", "to": "join(base, 'Naigen Desk')" }]
     },
     {
       "file": "packages/cli/src/resources.ts",
@@ -165,6 +169,55 @@
       ]
     }
   ],
+  "cli": {
+    "command": "naigen-desk",
+    "renames": [
+      { "from": "packages/cli/bin/genoffice", "to": "packages/cli/bin/naigen-desk" },
+      { "from": "packages/cli/bin/genoffice.cmd", "to": "packages/cli/bin/naigen-desk.cmd" },
+      { "from": "skills/genoffice", "to": "skills/naigen-desk" }
+    ],
+    "files": [
+      "packages/cli/bin/naigen-desk",
+      "packages/cli/bin/naigen-desk.cmd",
+      "packages/cli/build.mjs",
+      "packages/cli/collect-deps.mjs",
+      "packages/cli/package.json",
+      "packages/cli/src/**/*.ts",
+      "skills/naigen-desk/SKILL.md",
+      "packages/pipelines/src/slides/guides/*.md",
+      "packages/agent-core/src/cli-skill.ts",
+      "apps/*/src/renderer/ai/skills-skill.ts",
+      "apps/shell/src/main/index.ts",
+      "apps/shell/src/main/cli-link.ts",
+      "apps/shell/src/main/integrations-ipc.ts",
+      "apps/shell/src/main/user-cli.ts",
+      "apps/shell/src/main/control-handlers.ts",
+      "apps/shell/src/main/mcp/**/*.ts",
+      "apps/shell/src/renderer/src/IntegrationsPane.tsx",
+      "apps/shell/src/renderer/src/strings.ts",
+      "apps/shell/src/renderer/src/i18n/help/help-registry.ts",
+      "apps/shell/src/renderer/src/i18n/help/topics/*.md"
+    ],
+    "keepLineSubstrings": ["name === 'genoffice'"],
+    "replacements": [
+      {
+        "file": "apps/shell/electron-builder.cjs",
+        "replacements": [
+          { "from": "packages/cli/dist/genoffice.cjs", "to": "packages/cli/dist/naigen-desk.cjs" },
+          { "from": "packages/cli/bin/genoffice.cmd", "to": "packages/cli/bin/naigen-desk.cmd" },
+          { "from": "packages/cli/bin/genoffice'", "to": "packages/cli/bin/naigen-desk'" },
+          { "from": "'cli/genoffice.cjs'", "to": "'cli/naigen-desk.cjs'" },
+          { "from": "'cli/genoffice.cmd'", "to": "'cli/naigen-desk.cmd'" },
+          { "from": "'cli/genoffice'", "to": "'cli/naigen-desk'" },
+          { "from": "skills/genoffice/SKILL.md", "to": "skills/naigen-desk/SKILL.md" }
+        ]
+      },
+      {
+        "file": "apps/shell/src/main/integrations-ipc.ts",
+        "replacements": [{ "from": "genoffice-skill-", "to": "naigen-desk-skill-" }]
+      }
+    ]
+  },
   "shell": {
     "packageJson": "apps/shell/package.json",
     "builderConfig": "apps/shell/electron-builder.cjs",
@@ -189,8 +242,21 @@
     "logoSignatures": ["M105.115", "0 0 130 130.025"],
     "logoGlobs": ["apps/*/src/renderer/**/*.tsx", "apps/*/src/renderer/**/*.svg"],
     "packagingFile": "apps/shell/electron-builder.cjs",
-    "packagingForbidden": ["@genspark/cli"],
-    "packagingRequired": ["from: '../../LICENSE'", "from: '../../NOTICE'", "naigen-desk:installer"],
+    "packagingForbidden": [
+      "@genspark/cli",
+      "genoffice.cjs",
+      "genoffice.cmd",
+      "bin/genoffice",
+      "cli/genoffice",
+      "skills/genoffice"
+    ],
+    "packagingRequired": [
+      "from: '../../LICENSE'",
+      "from: '../../NOTICE'",
+      "naigen-desk:installer",
+      "to: 'cli/naigen-desk.cmd'",
+      "to: 'cli/skills/naigen-desk/SKILL.md'"
+    ],
     "shellMetaFields": ["productName", "author", "description", "homepage"],
     "allowlist": {
       "lineSubstrings": [

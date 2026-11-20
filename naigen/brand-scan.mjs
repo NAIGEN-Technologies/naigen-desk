@@ -10,7 +10,14 @@ import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { GENSPARK_RE, buildStandaloneRe, loadBrand, matchGlobs, walkFiles } from './brand-lib.mjs'
+import {
+  GENSPARK_RE,
+  buildCliTokenRe,
+  buildStandaloneRe,
+  loadBrand,
+  matchGlobs,
+  walkFiles,
+} from './brand-lib.mjs'
 
 export const CHECKS = [
   'upstream-name',
@@ -22,6 +29,7 @@ export const CHECKS = [
   'help-image',
   'packaging',
   'shell-meta',
+  'cli-name',
 ]
 
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex')
@@ -229,6 +237,45 @@ export function scan({ root, brand = loadBrand() }) {
       text: 'file is missing',
       found: pkgFile,
     })
+  }
+
+  // AC-6: the CLI, skill and MCP server answer to the new name, and no command token is left
+  for (const { from, to } of brand.cli.renames) {
+    if (existsSync(join(root, from))) {
+      hits.push({
+        check: 'cli-name',
+        file: from,
+        line: 0,
+        text: 'old path still exists',
+        found: from,
+      })
+    }
+    if (!existsSync(join(root, to))) {
+      hits.push({
+        check: 'cli-name',
+        file: to,
+        line: 0,
+        text: 'renamed path is missing',
+        found: to,
+      })
+    }
+  }
+  const tokenRe = buildCliTokenRe()
+  const keepLines = brand.cli.keepLineSubstrings
+  for (const rel of matchGlobs(all, brand.cli.files).files) {
+    hits.push(
+      ...lineHits(
+        root,
+        rel,
+        'cli-name',
+        (l) => {
+          if (keepLines.some((k) => l.includes(k))) return null
+          tokenRe.lastIndex = 0
+          return tokenRe.test(l) ? 'genoffice' : null
+        },
+        allow,
+      ),
+    )
   }
   return hits
 }

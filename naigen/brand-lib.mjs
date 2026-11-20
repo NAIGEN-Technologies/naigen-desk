@@ -82,6 +82,21 @@ export function buildStandaloneRe(brand) {
   return new RegExp(`(?<![\\w@/])${escapeRe(up)}(?![\\w/])${keepFont}${keepLit}`, 'g')
 }
 
+/**
+ * The lowercase upstream command token (`genoffice`) as the CLI, the skill and
+ * the MCP server spell it. Not matched: part of a word, an npm scope
+ * (`@genoffice/`), a dot directory (`.genoffice/`), the upstream repository
+ * path, an issue reference (`genoffice#12`), a hyphenated internal name
+ * (`genoffice-mcp-`), a `genoffice:id` identifier and the upstream domain.
+ * `genoffice://` and `genoffice: ` (message prefix) are matched.
+ */
+export const CLI_TOKEN_SOURCE =
+  '(?<![A-Za-z_@.])(?<!(?<!%~dp)[0-9])(?<!genspark-ai/)genoffice(?![\\w#]|-[A-Za-z]|:[^\\s/]|\\.(?:ai|nix|desktop)\\b)'
+
+export function buildCliTokenRe() {
+  return new RegExp(CLI_TOKEN_SOURCE, 'g')
+}
+
 /** `Genspark` (optionally followed by ` AI`) as a word, not part of an identifier or a path. */
 export const GENSPARK_RE = /(?<![A-Za-z0-9_@/])Genspark(?: AI(?![A-Za-z]))?(?![A-Za-z0-9_])/g
 
